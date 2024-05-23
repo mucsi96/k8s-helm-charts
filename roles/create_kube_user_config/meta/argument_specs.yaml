@@ -1,0 +1,16 @@
+---
+argument_specs:
+  main:
+    options:
+      k8s_user_config_path:
+        type: str
+        required: true
+      k8s_server:
+        type: str
+        required: true
+      k8s_ca_cert:
+        type: str
+        required: true
+      k8s_client_token:
+        type: str
+        required: true

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ k8s_name }}
+  namespace: {{ k8s_namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ k8s_name }}
+  template:
+    metadata:
+      labels:
+        app: {{ k8s_name }}
+      annotations:
+        checksum/secret: {{ secret_checksum }}
+    spec:
+      containers:
+      - name: {{ k8s_name }}
+        image: {{ latest_image }}
+        resources:
+          requests:
+            memory: 20Mi
+            cpu: 20m
+          limits:
+            memory: 100Mi
+            cpu: 500m
+        ports:
+        - name: http
+          containerPort: 80
+        livenessProbe:
+          httpGet:
+            path: /?liveness
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        readinessProbe:
+          httpGet:
+            path: /?readiness
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        startupProbe:
+          httpGet:
+            path: /?startup
+            port: http
+          failureThreshold: 20
+          periodSeconds: 5
+      - name: {{ k8s_name }}-prometheus-exporter
+        image: "nginx/nginx-prometheus-exporter:0.11"
+        args:
+          - "-nginx.scrape-uri=http://localhost:8033/stub_status"
+        ports:
+          - name: metrics
+            containerPort: 9113
+        livenessProbe:
+          httpGet:
+            path: /
+            port: metrics
+          initialDelaySeconds: 30
+          timeoutSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /
+            port: metrics
+          initialDelaySeconds: 30
+          timeoutSeconds: 10

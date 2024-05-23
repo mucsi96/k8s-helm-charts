@@ -1,0 +1,19 @@
+- name: Get checksums
+  set_fact:
+    secret_checksum: "{{ lookup('template', 'secret.yaml') | checksum }}"
+- name: Get latest image version
+  include_role:
+    name: get_latest_image_version
+- name: Add kubernetes resources
+  delegate_to: localhost
+  kubernetes.core.k8s:  
+    kubeconfig: "{{ k8s_user_config_path }}"
+    state: present
+    definition: "{{ lookup('template', item) }}"
+    wait: true
+  with_items:
+    - secret.yaml
+    - deployment.yaml
+    - service.yaml
+    - route.yaml
+    # - service_monitor.yaml

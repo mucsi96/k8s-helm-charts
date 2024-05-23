@@ -1,0 +1,3 @@
+https://github.com/mucsi96/publish-tools/releases/download/version-16/publish_tools-16.0.0-py2.py3-none-any.whl
+ansible==9.5.1
+kubernetes==29.0.0

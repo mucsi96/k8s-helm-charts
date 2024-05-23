@@ -1,0 +1,17 @@
+- name: Create Azure Kubernetes Cluster
+  hosts: azure
+  vars_files:
+    - ../vars/defaults.yaml
+    - ../vars/vault.yaml
+  roles:
+    - role: create_kube_user_config
+      vars:
+        k8s_namespace: test
+    - role: deploy_client_app
+      vars:
+        k8s_name: demo-app
+        k8s_namespace: test
+        app_host: "demo.{{ hostname }}"
+        base_path: /
+        image: mucsi96/hello-client
+    

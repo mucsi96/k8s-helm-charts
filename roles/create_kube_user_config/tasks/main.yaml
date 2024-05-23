@@ -1,0 +1,29 @@
+- name: Create ansible config folder
+  delegate_to: localhost
+  ansible.builtin.file:
+    path: "{{ k8s_user_config_path | dirname }}"
+    state: directory
+    mode: 0700
+
+- name: Create ansible config
+  delegate_to: localhost
+  ansible.builtin.copy:
+    dest: "{{ k8s_user_config_path }}"
+    content: "{{ lookup('ansible.builtin.template', 'ansible_config.yml') }}"
+    mode: 0600
+
+- name: Check forbidden
+  delegate_to: localhost
+  kubernetes.core.k8s_info:
+    kubeconfig: "{{ k8s_user_config_path }}"
+    kind: Node
+  register: this
+  failed_when: "'403' not in this.msg"
+
+- name: Check success
+  delegate_to: localhost
+  kubernetes.core.k8s:
+    kubeconfig: "{{ k8s_user_config_path }}"
+    state: present
+    kind: namespace
+    name: "{{ k8s_namespace }}"

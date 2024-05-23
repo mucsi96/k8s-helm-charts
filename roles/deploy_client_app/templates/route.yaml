@@ -1,0 +1,19 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: {{ k8s_name }}-route
+  namespace: {{ k8s_namespace }}
+spec:
+  entryPoints:
+    - web
+    - websecure
+  tls:
+    certResolver: letsencrypt
+  routes:
+    - kind: Rule
+      match: Host(`{{ app_host }}`) && PathPrefix(`{{ base_path }}`)
+      services:
+        - kind: Service
+          name: {{ k8s_name }}
+          namespace: {{ k8s_namespace }}
+          port: http
