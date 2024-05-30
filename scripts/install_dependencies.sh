@@ -1,3 +1,3 @@
 #!/bin/bash
 
-pip install -r requirements.txt
+brew update && brew upgrade && brew install kubernetes-cli

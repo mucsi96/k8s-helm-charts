@@ -1,1 +1,0 @@
-k8s_user_config_path: "{{ inventory_dir }}/.kube/user-config"

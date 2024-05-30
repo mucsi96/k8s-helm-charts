@@ -1,6 +1,5 @@
 {
     "recommendations": [
         "ms-kubernetes-tools.vscode-kubernetes-tools",
-        "ms-python.python"
     ]
 }
