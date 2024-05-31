@@ -5,8 +5,18 @@
     {
       "type": "shell",
       "command": "bash",
-      "label": "Deploy demo",
-      "args": ["scripts/run_playbook.sh", "playbooks/deploy_demo.yml"],
+      "label": "Render client app",
+      "args": ["scripts/render_client_app.sh"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "type": "shell",
+      "command": "bash",
+      "label": "Deploy client app",
+      "args": ["scripts/deploy_client_app.sh"],
       "options": {
         "cwd": "${workspaceFolder}"
       },

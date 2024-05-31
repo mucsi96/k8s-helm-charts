@@ -1,5 +1,5 @@
 {
     "vs-kubernetes": {
-        "vs-kubernetes.kubeconfig": "./.kube/admin-config"
+        "vs-kubernetes.kubeconfig": "./.kube/config"
     }
 }

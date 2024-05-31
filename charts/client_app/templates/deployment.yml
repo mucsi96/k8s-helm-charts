@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ k8s_name }}
-  namespace: {{ k8s_namespace }}
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
 spec:
   selector:
     matchLabels:
-      app: {{ k8s_name }}
+      app: {{ .Release.Name }}
   template:
     metadata:
       labels:
-        app: {{ k8s_name }}
+        app: {{ .Release.Name }}
       annotations:
-        checksum/secret: {{ secret_checksum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yml") . | sha256sum }}
     spec:
       containers:
-      - name: {{ k8s_name }}
-        image: {{ latest_image }}
+      - name: {{ .Release.Name }}
+        image: {{ .Values.image }}
         resources:
           requests:
             memory: 20Mi
@@ -45,10 +45,17 @@ spec:
             port: http
           failureThreshold: 20
           periodSeconds: 5
-      - name: {{ k8s_name }}-prometheus-exporter
+      - name: {{ .Release.Name }}-prometheus-exporter
         image: "nginx/nginx-prometheus-exporter:0.11"
         args:
           - "-nginx.scrape-uri=http://localhost:8033/stub_status"
+        resources:
+          requests:
+            memory: 20Mi
+            cpu: 20m
+          limits:
+            memory: 100Mi
+            cpu: 500m
         ports:
           - name: metrics
             containerPort: 9113

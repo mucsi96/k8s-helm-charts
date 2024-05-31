@@ -1,7 +1,0 @@
----
-argument_specs:
-  main:
-    options: 
-      image:
-        type: str
-        required: true
