@@ -31,6 +31,16 @@
         "cwd": "${workspaceFolder}"
       },
       "problemMatcher": []
+    },
+    {
+      "type": "shell",
+      "command": "bash",
+      "label": "Pull kubeconfig",
+      "args": ["scripts/pull_kubeconfig.sh"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }
