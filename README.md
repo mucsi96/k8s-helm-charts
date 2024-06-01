@@ -1,2 +1,2 @@
-# k8s-deployments
-Ansible roles for application deployment
+# k8s-helm-charts
+Helm charts for application deployments in K8s
