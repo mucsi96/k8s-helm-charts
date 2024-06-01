@@ -1,8 +1,10 @@
 #!/bin/bash
 
-host=$(az keyvault secret show --vault-name p02 --name dns-zone --query value --output tsv)
+host=$(az keyvault secret show --vault-name p02 --name hostname --query value --output tsv)
 
-helm install \
+helm upgrade \
+    --install \
+    --force \
     --kubeconfig .kube/config \
     --namespace demo \
     --set image=mucsi96/hello-client \
