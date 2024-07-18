@@ -11,5 +11,5 @@ helm upgrade \
     --set host=demo.$host \
     --set basePath=/ \
     --wait \
-    demo \
+    client-app \
     ./charts/client_app
