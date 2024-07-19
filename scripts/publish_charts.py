@@ -17,6 +17,13 @@ for package in [
     version = version_utils.get_version(
         src=package["src"], tag_prefix=package["tag-prefix"]
     )
+    
+    with open(package["src"] / "Chart.yaml", "r") as file:
+        chart_yaml = file.read()
+        chart_yaml = chart_yaml.replace("version: 0.1.0", f"version: {version}.0.0")
+        
+    with open(package["src"] / "Chart.yaml", "w") as file:
+        file.write(chart_yaml)
 
     run(
         [
