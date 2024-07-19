@@ -25,8 +25,6 @@ for package in [
             package["src"],
             "--destination",
             "dist",
-            "--version",
-            "${version}.0.0",
         ],
         cwd=root_directory,
         check=True,
