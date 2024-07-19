@@ -42,10 +42,10 @@ for package in [
         access_token=sys.argv[1],
         body=dedent(
             f"""
-            [Helm chart](https://raw.githubusercontent.com/{environ['GITHUB_REPOSITORY']}/main/dist/{package["tag-prefix"]}-{version}.0.0.tgz)
+            [Helm chart](https://mucsi96.github.io/k8s-helm-charts/{package["tag-prefix"]}-{version}.0.0.tgz)
 
             ```bash
-                helm repo add mucsi96 https://raw.githubusercontent.com/{environ['GITHUB_REPOSITORY']}/main/dist
+                helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts
                 helm install mucsi96/{package["tag-prefix"]} --version {version}.0.0
             ```
         """
