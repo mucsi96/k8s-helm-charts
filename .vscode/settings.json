@@ -1,4 +1,6 @@
 {
+    "python.analysis.autoImportCompletions": true,
+    "python.analysis.typeCheckingMode": "basic",
     "vs-kubernetes": {
         "vs-kubernetes.kubeconfig": "./.kube/config"
     }

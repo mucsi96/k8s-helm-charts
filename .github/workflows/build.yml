@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: any
+  cancel-in-progress: true
+
+jobs:
+  pack-charts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+          cache: pip
+      - run: pip install -r requirements.txt
+      - id: pack-test-pages
+        run: python scripts/publish_charts.py ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload artifact
+        id: upload-artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: github-pages
+          path: ${{ steps.pack-test-pages.outputs.artifact }}
+          retention-days: 30
+
+  deploy-charts:
+    runs-on: ubuntu-latest
+    needs: pack-test-pages
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  

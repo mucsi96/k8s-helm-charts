@@ -1,0 +1,1 @@
+mucsi96.publish-tools == 34.0.0
