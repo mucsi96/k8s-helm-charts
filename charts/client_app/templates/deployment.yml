@@ -27,6 +27,9 @@ spec:
         ports:
         - name: http
           containerPort: 80
+        envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}-env
         livenessProbe:
           httpGet:
             path: /?liveness
