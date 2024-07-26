@@ -1,0 +1,2 @@
+appPort: 8080
+springActuatorPort: 8082

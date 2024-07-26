@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yml") . | sha256sum }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}
+        image: {{ .Values.image }}
+        resources:
+          requests:
+            memory: 300Mi
+            cpu: 20m
+          limits:
+            memory: 500Mi
+            cpu: 500m
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: actuator
+          containerPort: 8082
+        envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}
+        env:
+          - name: SERVER_SERVLET_CONTEXT_PATH
+            value: "{{ base_path }}"
+          - name: SPRING_ACTUATOR_PORT
+            value: "8082"
+          - name: SPRING_ADMIN_SERVER_HOST
+            value: {{ .Values.springAdminServerHost }}
+          - name: SPRING_ADMIN_SERVER_PORT
+            value: "{{ .Values.springAdminServerPort }}"
+          - name: K8S_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+          initialDelaySeconds: 15
+        startupProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8082
+          initialDelaySeconds: 10
+          failureThreshold: 30
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sh", "-c", "sleep 10"]

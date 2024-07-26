@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  ports:
+    - port: {{ .Values.appPort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ .Values.springActuatorPort }}
+      targetPort: actuator
+      protocol: TCP
+      name: actuator
+  selector:
+    app: {{ .Release.Name }}
