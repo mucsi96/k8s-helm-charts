@@ -10,7 +10,11 @@ spec:
     certResolver: letsencrypt
   routes:
     - kind: Rule
+      {{ if .Values.basePath }}
       match: Host(`{{ required "host value is required!" .Values.host }}`) && PathPrefix(`{{ .Values.basePath }}`)
+      {{ else }}
+      match: Host(`{{ required "host value is required!" .Values.host }}`)
+      {{ end }}
       services:
         - kind: Service
           name: {{ .Release.Name }}
