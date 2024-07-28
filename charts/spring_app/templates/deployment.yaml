@@ -34,7 +34,7 @@ spec:
               name: {{ .Release.Name }}-env
         env:
           - name: SERVER_SERVLET_CONTEXT_PATH
-            value: "{{ required "basePath value is required!" .Values.basePath }}"
+            value: "{{ .Values.basePath }}"
           - name: SPRING_ACTUATOR_PORT
             value: "8082"
           - name: SPRING_ADMIN_SERVER_HOST

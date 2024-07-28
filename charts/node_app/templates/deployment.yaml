@@ -29,7 +29,7 @@ spec:
           containerPort: 8080
         env:
           - name: BASE_PATH
-            value: "{{ required "basePath value is required!" .Values.basePath }}"
+            value: "{{ .Values.basePath }}"
         envFrom:
           - secretRef:
               name: {{ .Release.Name }}-env
