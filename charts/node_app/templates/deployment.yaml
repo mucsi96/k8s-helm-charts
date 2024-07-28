@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}
-        image: {{ .Values.image }}
+        image: {{ required "image value is required!" .Values.image }}
         resources:
           requests:
             memory: 300Mi

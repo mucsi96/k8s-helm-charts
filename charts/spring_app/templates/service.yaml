@@ -7,11 +7,11 @@ metadata:
     app: {{ .Release.Name }}
 spec:
   ports:
-    - port: {{ .Values.appPort }}
+    - port: {{ required "appPort value is required!" .Values.appPort }}
       targetPort: http
       protocol: TCP
       name: http
-    - port: {{ .Values.springActuatorPort }}
+    - port: {{ required "springActuatorPort value is required!" .Values.springActuatorPort }}
       targetPort: actuator
       protocol: TCP
       name: actuator
