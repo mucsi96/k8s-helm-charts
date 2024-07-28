@@ -29,7 +29,7 @@ spec:
           containerPort: 8080
         envFrom:
           - secretRef:
-              name: {{ .Release.Name }}
+              name: {{ .Release.Name }}-env
         livenessProbe:
           httpGet:
             path: /health

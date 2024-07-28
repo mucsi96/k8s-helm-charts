@@ -31,7 +31,7 @@ spec:
           containerPort: 8082
         envFrom:
           - secretRef:
-              name: {{ .Release.Name }}
+              name: {{ .Release.Name }}-env
         env:
           - name: SERVER_SERVLET_CONTEXT_PATH
             value: "{{ base_path }}"
