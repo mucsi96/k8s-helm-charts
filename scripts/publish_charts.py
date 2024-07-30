@@ -15,6 +15,7 @@ for package in [
     {"tag-prefix": "client-app", "src": root_directory / "charts/client_app"},
     {"tag-prefix": "spring-app", "src": root_directory / "charts/spring_app"},
     {"tag-prefix": "node-app", "src": root_directory / "charts/node_app"},
+    {"tag-prefix": "postgres-db", "src": root_directory / "charts/postgres_db"},
 ]:
     latest_verison = version_utils.get_latest_version(package["tag-prefix"])
     version = version_utils.get_version(

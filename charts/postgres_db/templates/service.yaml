@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  selector:
+    app: {{ .Release.Name }}
+  ports:
+    - port: {{ required "port value is required!" .Values.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: {{ required "metricsPort value is required!" .Values.metricsPort }}
+      targetPort: metrics
+      protocol: TCP
+      name: metrics

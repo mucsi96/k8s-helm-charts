@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}
+        image: postgres:15
+        resources:
+          requests:
+            memory: 200Mi
+            cpu: 20m
+          limits:
+            memory: 300Mi
+            cpu: 500m
+        ports:
+        - name: http
+          containerPort: 5432
+        env:
+          - name: POSTGRES_DB
+            value: {{ required "name value is required!" .Values.name }}
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}
+                key: username
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}
+                key: password
+        volumeMounts:
+          - name: ssv
+            mountPath: /var/lib/postgresql
+          - name: initdb
+            mountPath: /docker-entrypoint-initdb.d
+      - name: {{ .Release.Name }}-prometheus-exporter
+        image: prometheuscommunity/postgres-exporter:v0.15.0 #https://github.com/prometheus-community/postgres_exporter/releases
+        ports:
+          - name: metrics
+            containerPort: 9187
+        env:
+          - name: POSTGRES_DB
+            value: {{ required "name value is required!" .Values.name }}
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}
+                key: exporterUsername
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}
+                key: exporterPassword
+          - name: DATA_SOURCE_NAME
+            value: postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:5432/$(POSTGRES_DB)?sslmode=disable
+        livenessProbe:
+          httpGet:
+            path: /
+            port: metrics
+          initialDelaySeconds: 15
+        startupProbe:
+          httpGet:
+            path: /
+            port: metrics
+          initialDelaySeconds: 5
+      volumes:
+      - name: ssv
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}
+      - name: initdb
+        secret:
+          secretName: {{ .Release.Name }}
+          items:
+            - key: initdbSql
+              path: initdb.sql
+            - key: grantSql
+              path: grant.sql

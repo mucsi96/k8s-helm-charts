@@ -1,0 +1,24 @@
+# apiVersion: batch/v1
+# kind: CronJob
+# metadata:
+#   name: {{ .Release.Name }}-monthly-backup
+#   namespace: {{ .Release.Namespace }}
+# spec:
+#   concurrencyPolicy: Forbid
+#   failedJobsHistoryLimit: 1
+#   successfulJobsHistoryLimit: 1
+#   schedule: "0 7 1 * *" # At 07:00 on day-of-month 1.
+#   jobTemplate:
+#     spec:
+#       template:
+#         spec:
+#           containers:
+#           - name: curlimage
+#             image: curlimages/curl
+#             imagePullPolicy: IfNotPresent
+#             args:
+#               - --request
+#               - POST
+#               - --fail
+#               - {{ .Release.Name }}-postgres-backup-tool:8080/db/backup?retention_period=356
+#           restartPolicy: Never
