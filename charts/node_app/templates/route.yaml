@@ -7,7 +7,7 @@ spec:
   entryPoints:
     - websecure
   tls:
-    certResolver: letsencrypt
+    enabled: true
   routes:
     - kind: Rule
       {{ if .Values.basePath }}
