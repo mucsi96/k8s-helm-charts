@@ -38,7 +38,7 @@ spec:
           - name: SPRING_ACTUATOR_PORT
             value: "8082"
           - name: SPRING_ADMIN_SERVER_HOST
-            value: {{ .Values.springAdminServerHost }}
+            value: "{{ .Values.springAdminServerHost }}"
           - name: SPRING_ADMIN_SERVER_PORT
             value: "{{ .Values.springAdminServerPort }}"
           - name: K8S_POD_IP
