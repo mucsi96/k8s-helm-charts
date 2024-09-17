@@ -12,7 +12,8 @@ spec:
       labels:
         app: {{ .Release.Name }}
       annotations:
-        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/secret_env: {{ include (print $.Template.BasePath "/secret_env.yaml") . | sha256sum }}
+        checksum/secret_config_files: {{ include (print $.Template.BasePath "/secret_config_files.yaml") . | sha256sum }}
     spec:
       containers:
       - name: {{ .Release.Name }}
@@ -60,3 +61,13 @@ spec:
           preStop:
             exec:
               command: ["sh", "-c", "sleep 10"]
+        volumeMounts:
+{{- range .Values.configFile }}
+          - name: secret-config-files
+            mountPath: {{ .mountPath }}
+            subPath: {{ .name }}
+{{- end }}
+      volumes:
+        - name: secret-config-files
+          secret:
+            secretName: {{ .Release.Name }}-config-files
