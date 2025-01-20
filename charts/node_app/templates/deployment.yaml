@@ -11,9 +11,11 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}
+        azure.workload.identity/use: 'true'
       annotations:
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:
+      serviceAccountName: {{ .Release.Name }}
       containers:
       - name: {{ .Release.Name }}
         image: {{ required "image value is required!" .Values.image }}

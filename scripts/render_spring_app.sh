@@ -2,15 +2,14 @@
 
 rm -rf out
 mkdir -p out
-helm template \
+helm template demo-application1 ./charts/spring_app  \
     --namespace demo-namespace1 \
-    --set image=mucsi96/hello-server \
-    --set host=demo.example.com \
-    --set basePath=/ \
-    --set env.ENV_VAR1=value1 \
-    --set env.ENV_VAR2=value2 \
-    --set configFile[0].name=application.json \
-    --set configFile[0].mountPath=/config/application.json \
-    --set "configFile[0].data=$(cat charts/spring_app/Chart.yaml)" \
-    demo-application1 \
-    ./charts/spring_app > out/spring-app.yaml
+    --set image=mucsi96/postgres-azure-backup \
+    --set host=demo.$host \
+    --set basePath=/db \
+    --set env.BLOBSTORAGE_ENDPOINT_URL=https://ibari.blob.core.windows.net \
+    --set env.DATABASES_CONFIG_PATH=/app/databases_config.json \
+    --set configFile[0].name=databases_config.json \
+    --set configFile[0].mountPath=/app/databases_config.json \
+    --set "configFile[0].data=$(cat scripts/databases_config.json | base64)" \
+    > out/spring-app.yaml

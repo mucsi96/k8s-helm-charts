@@ -6,8 +6,6 @@ metadata:
 spec:
   entryPoints:
     - websecure
-  tls:
-    enabled: true
   routes:
     - kind: Rule
       {{ if .Values.basePath }}
