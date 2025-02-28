@@ -40,9 +40,11 @@ spec:
               secretKeyRef:
                 name: {{ .Release.Name }}
                 key: password
+          - name: PGDATA
+            value: /var/lib/postgresql/data/pgdata
         volumeMounts:
           - name: ssv
-            mountPath: /var/lib/postgresql/data
+            mountPath: /var/lib/postgresql/data/pgdata
           - name: initdb
             mountPath: /docker-entrypoint-initdb.d
       - name: {{ .Release.Name }}-prometheus-exporter
