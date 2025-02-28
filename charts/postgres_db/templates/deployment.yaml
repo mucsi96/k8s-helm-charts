@@ -44,7 +44,7 @@ spec:
             value: /var/lib/postgresql/data/pgdata
         volumeMounts:
           - name: ssv
-            mountPath: /var/lib/postgresql/data/pgdata
+            mountPath: /var/lib/postgresql/data
           - name: initdb
             mountPath: /docker-entrypoint-initdb.d
       - name: {{ .Release.Name }}-prometheus-exporter
