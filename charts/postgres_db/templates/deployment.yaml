@@ -42,7 +42,7 @@ spec:
                 key: password
         volumeMounts:
           - name: ssv
-            mountPath: /var/lib/postgresql
+            mountPath: /var/lib/postgresql/data
           - name: initdb
             mountPath: /docker-entrypoint-initdb.d
       - name: {{ .Release.Name }}-prometheus-exporter
