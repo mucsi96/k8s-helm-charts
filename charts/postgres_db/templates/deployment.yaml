@@ -80,7 +80,7 @@ spec:
       volumes:
       - name: ssv
         persistentVolumeClaim:
-          claimName: {{ .Release.Name }}
+          claimName: {{ .Values.persistentVolumeClaimName }}
       - name: initdb
         secret:
           secretName: {{ .Release.Name }}
