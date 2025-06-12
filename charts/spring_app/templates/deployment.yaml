@@ -16,7 +16,7 @@ spec:
         checksum/secret_env: {{ include (print $.Template.BasePath "/secret_env.yaml") . | sha256sum }}
         checksum/secret_config_files: {{ include (print $.Template.BasePath "/secret_config_files.yaml") . | sha256sum }}
     spec:
-      serviceAccountName: {{ .Release.Name }}
+      serviceAccountName: {{ .Values.serviceAccountName }}
       containers:
       - name: {{ .Release.Name }}
         image: {{ required "image value is required!" .Values.image }}
