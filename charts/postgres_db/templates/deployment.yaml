@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}
-        image: postgres:15
+        image: postgres:17.6 #https://github.com/docker-library/docs/tree/master/postgres
         resources:
           requests:
             memory: 200Mi
@@ -48,7 +48,7 @@ spec:
           - name: initdb
             mountPath: /docker-entrypoint-initdb.d
       - name: {{ .Release.Name }}-prometheus-exporter
-        image: prometheuscommunity/postgres-exporter:v0.15.0 #https://github.com/prometheus-community/postgres_exporter/releases
+        image: prometheuscommunity/postgres-exporter:v0.17.1 #https://github.com/prometheus-community/postgres_exporter/releases
         ports:
           - name: metrics
             containerPort: 9187
