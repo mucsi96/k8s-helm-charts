@@ -5,7 +5,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   entryPoints:
-    - websecure
+    - {{ required "entryPoint value is required!" .Values.entryPoint }}
   routes:
     - kind: Rule
       {{ if .Values.basePath }}
