@@ -117,7 +117,7 @@ Deploys a Spring Boot application with support for Spring Boot Actuator, Azure W
 | `basePath` | Base path prefix for the application | `/api` | - |
 | `env` | Environment variables as key-value pairs | See example below | `{}` |
 | `configFile` | Array of config files to mount as secrets | See example below | `[]` |
-| `persistentVolumeClaims` | Array of PVCs to create and mount | See example below | `[]` |
+| `persistentVolumeClaims` | Array of existing PVCs to mount | See example below | `[]` |
 
 ### Config File Structure
 
@@ -131,14 +131,14 @@ Each config file entry supports:
 
 ### Persistent Volume Claim Structure
 
+**Note:** PersistentVolumeClaims must be created and managed outside of this Helm chart. This chart only mounts existing PVCs.
+
 Each PVC entry supports:
 
 | Field | Description | Required | Example |
 |-------|-------------|----------|---------|
-| `name` | PVC identifier (unique name) | Yes | `data` |
+| `name` | Name of the existing PVC to mount | Yes | `my-app-data-pvc` |
 | `mountPath` | Mount path in the container | Yes | `/data` |
-| `accessMode` | Access mode for the volume | Yes | `ReadWriteOnce` |
-| `storage` | Storage size | Yes | `10Gi` |
 
 ### Example values.yaml
 
@@ -166,15 +166,12 @@ configFile:
     mountPath: /config/logback.xml
     data: PGNvbmZpZ3VyYXRpb24+PC9jb25maWd1cmF0aW9uPg==
 
+# Reference existing PVCs that are managed outside Helm
 persistentVolumeClaims:
-  - name: data
+  - name: my-app-data-pvc
     mountPath: /data
-    accessMode: ReadWriteOnce
-    storage: 10Gi
-  - name: logs
+  - name: my-app-logs-pvc
     mountPath: /var/log/app
-    accessMode: ReadWriteOnce
-    storage: 5Gi
 ```
 
 ---
@@ -194,6 +191,7 @@ Deploys a PostgreSQL database with Prometheus metrics exporter and persistent st
 | `password` | Database password (stored as secret) | `mypassword` |
 | `exporterUsername` | Prometheus exporter username | `exporter` |
 | `exporterPassword` | Prometheus exporter password | `exporterpass` |
+| `existingPersistentVolumeClaimName` | Name of existing PVC for database storage | `postgres-data-pvc` |
 
 ### Optional Values
 
@@ -203,11 +201,13 @@ Deploys a PostgreSQL database with Prometheus metrics exporter and persistent st
 
 ### Features
 
-- PostgreSQL 17.6 with persistent storage (1Gi)
+- PostgreSQL 17.6 with persistent storage
 - Prometheus metrics exporter for monitoring
 - Automatic database initialization with custom SQL
 - Automatic creation of exporter user with `pg_monitor` role
 - Service monitor for Prometheus integration
+
+**Note:** The PersistentVolumeClaim must be created and managed outside of this Helm chart. The chart references an existing PVC via `existingPersistentVolumeClaimName`.
 
 ### Example values.yaml
 
@@ -219,6 +219,7 @@ username: myuser
 password: securepassword123
 exporterUsername: exporter
 exporterPassword: exporterpass456
+existingPersistentVolumeClaimName: postgres-data-pvc
 initSql: |
   CREATE TABLE users (
     id SERIAL PRIMARY KEY,
