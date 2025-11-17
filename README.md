@@ -138,6 +138,7 @@ Each PVC entry supports:
 | `name` | PVC identifier (unique name) | Yes | `data` |
 | `mountPath` | Mount path in the container | Yes | `/data` |
 | `accessMode` | Access mode for the volume | Yes | `ReadWriteOnce` |
+| `storageClassName` | Storage class name | Yes | `standard` |
 | `storage` | Storage size | Yes | `10Gi` |
 
 ### Example values.yaml
@@ -170,10 +171,12 @@ persistentVolumeClaims:
   - name: data
     mountPath: /data
     accessMode: ReadWriteOnce
+    storageClassName: standard
     storage: 10Gi
   - name: logs
     mountPath: /var/log/app
     accessMode: ReadWriteOnce
+    storageClassName: standard
     storage: 5Gi
 ```
 

@@ -8,6 +8,7 @@ metadata:
 spec:
   accessModes:
     - {{ .accessMode }}
+  storageClassName: {{ .storageClassName }}
   resources:
     requests:
       storage: {{ .storage }}
