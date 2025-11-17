@@ -69,7 +69,16 @@ spec:
             mountPath: {{ .mountPath }}
             subPath: {{ .name }}
 {{- end }}
+{{- range .Values.persistentVolumeClaims }}
+          - name: pvc-{{ .name }}
+            mountPath: {{ .mountPath }}
+{{- end }}
       volumes:
         - name: secret-config-files
           secret:
             secretName: {{ .Release.Name }}-config-files
+{{- range .Values.persistentVolumeClaims }}
+        - name: pvc-{{ .name }}
+          persistentVolumeClaim:
+            claimName: {{ $.Release.Name }}-{{ .name }}
+{{- end }}
