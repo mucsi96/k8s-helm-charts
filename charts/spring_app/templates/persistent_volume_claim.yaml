@@ -9,6 +9,7 @@ spec:
   accessModes:
     - {{ .accessMode }}
   storageClassName: {{ .storageClassName }}
+  volumeName: {{ .volumeName }}
   resources:
     requests:
       storage: {{ .storage }}
