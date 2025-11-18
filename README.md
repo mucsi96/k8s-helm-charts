@@ -118,6 +118,7 @@ Deploys a Spring Boot application with support for Spring Boot Actuator, Azure W
 | `env` | Environment variables as key-value pairs | See example below | `{}` |
 | `configFile` | Array of config files to mount as secrets | See example below | `[]` |
 | `persistentVolumeClaims` | Array of existing PVCs to mount | See example below | `[]` |
+| `persistentVolumes` | Array of existing PVs to mount | See example below | `[]` |
 
 ### Config File Structure
 
@@ -138,6 +139,17 @@ Each PVC entry supports:
 | Field | Description | Required | Example |
 |-------|-------------|----------|---------|
 | `name` | Name of the existing PVC to mount | Yes | `my-app-data-pvc` |
+| `mountPath` | Mount path in the container | Yes | `/data` |
+
+### Persistent Volume Structure
+
+**Note:** PersistentVolumes must be created and managed outside of this Helm chart. This chart only mounts existing PVs.
+
+Each PV entry supports:
+
+| Field | Description | Required | Example |
+|-------|-------------|----------|---------|
+| `name` | Name of the existing PV to mount | Yes | `my-app-data-pv` |
 | `mountPath` | Mount path in the container | Yes | `/data` |
 
 ### Example values.yaml
@@ -172,6 +184,11 @@ persistentVolumeClaims:
     mountPath: /data
   - name: my-app-logs-pvc
     mountPath: /var/log/app
+
+# Reference existing PVs that are managed outside Helm
+persistentVolumes:
+  - name: my-app-cache-pv
+    mountPath: /cache
 ```
 
 ---
