@@ -5,7 +5,9 @@ metadata:
   namespace: {{ .Release.Namespace }}
 spec:
   accessModes:
-    - ReadWriteOnce
+    - {{ .Values.persistentVolumeClaim.accessMode }}
+  storageClassName: {{ .Values.persistentVolumeClaim.storageClassName }}
+  volumeName: {{ .Values.persistentVolumeClaim.volumeName }}
   resources:
     requests:
-      storage: 1Gi
+      storage: {{ .Values.persistentVolumeClaim.storage }}

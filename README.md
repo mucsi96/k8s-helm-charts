@@ -206,10 +206,22 @@ Deploys a PostgreSQL database with Prometheus metrics exporter and persistent st
 | Parameter | Description | Example | Default |
 |-----------|-------------|---------|---------|
 | `initSql` | SQL script to run on database initialization | `CREATE TABLE users (id SERIAL);` | `""` |
+| `persistentVolumeClaim` | Persistent volume claim configuration object | See below | See below |
+
+### Persistent Volume Claim Configuration
+
+The `persistentVolumeClaim` parameter accepts an object with the following fields:
+
+| Field | Description | Example | Default |
+|-------|-------------|---------|---------|
+| `accessMode` | Access mode for the volume | `ReadWriteOnce` | `ReadWriteOnce` |
+| `storageClassName` | Storage class name for the PVC | `standard` | `""` |
+| `volumeName` | Persistent volume name to bind to | `pv-postgres-data` | `""` |
+| `storage` | Storage size | `10Gi` | `1Gi` |
 
 ### Features
 
-- PostgreSQL 17.6 with persistent storage (1Gi)
+- PostgreSQL 17.6 with configurable persistent storage
 - Prometheus metrics exporter for monitoring
 - Automatic database initialization with custom SQL
 - Automatic creation of exporter user with `pg_monitor` role
@@ -232,6 +244,11 @@ initSql: |
     created_at TIMESTAMP DEFAULT NOW()
   );
   CREATE INDEX idx_username ON users(username);
+persistentVolumeClaim:
+  accessMode: ReadWriteOnce
+  storageClassName: standard
+  volumeName: pv-postgres-data
+  storage: 10Gi
 ```
 
 ---
