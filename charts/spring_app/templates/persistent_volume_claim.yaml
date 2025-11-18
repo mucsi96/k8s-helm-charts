@@ -8,7 +8,7 @@ metadata:
 spec:
   accessModes:
     - {{ .accessMode }}
-  storageClassName: {{ .storageClassName }} | quote }}
+  storageClassName: {{ .storageClassName | quote }}
   volumeName: {{ .volumeName }}
   resources:
     requests:
