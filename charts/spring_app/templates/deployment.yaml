@@ -80,5 +80,5 @@ spec:
 {{- range .Values.persistentVolumeClaims }}
         - name: pvc-{{ .name }}
           persistentVolumeClaim:
-            claimName: {{ .name }}
+            claimName: {{ $.Release.Name }}-{{ .name }}
 {{- end }}
