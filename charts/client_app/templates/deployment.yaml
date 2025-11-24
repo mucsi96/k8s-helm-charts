@@ -49,9 +49,9 @@ spec:
           failureThreshold: 20
           periodSeconds: 5
       - name: {{ .Release.Name }}-prometheus-exporter
-        image: "nginx/nginx-prometheus-exporter:0.11"
+        image: "nginx/nginx-prometheus-exporter:1.5.1" #https://github.com/nginx/nginx-prometheus-exporter/releases
         args:
-          - "-nginx.scrape-uri=http://localhost:8033/stub_status"
+          - "--nginx.scrape-uri=http://localhost:8033/stub_status"
         resources:
           requests:
             memory: 20Mi
