@@ -1,3 +1,10 @@
 appPort: 8080
 springActuatorPort: 8082
 persistentVolumeClaims: []
+resources:
+  requests:
+    memory: 300Mi
+    cpu: 20m
+  limits:
+    memory: 500Mi
+    cpu: 500m

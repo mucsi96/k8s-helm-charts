@@ -20,12 +20,7 @@ spec:
       - name: {{ .Release.Name }}
         image: {{ required "image value is required!" .Values.image }}
         resources:
-          requests:
-            memory: 300Mi
-            cpu: 20m
-          limits:
-            memory: 500Mi
-            cpu: 500m
+          {{- toYaml .Values.resources | nindent 10 }}
         ports:
         - name: http
           containerPort: 8080

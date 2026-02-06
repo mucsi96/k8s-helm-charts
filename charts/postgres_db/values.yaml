@@ -1,6 +1,13 @@
 port: 5432
 metricsPort: 8085
 initSql: ""
+resources:
+  requests:
+    memory: 200Mi
+    cpu: 20m
+  limits:
+    memory: 300Mi
+    cpu: 500m
 persistentVolumeClaim:
   accessMode: "ReadWriteOnce"
   storageClassName: ""

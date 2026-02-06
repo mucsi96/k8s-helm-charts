@@ -1,2 +1,9 @@
 appPort: 80
 metricsPort: 8085
+resources:
+  requests:
+    memory: 20Mi
+    cpu: 20m
+  limits:
+    memory: 100Mi
+    cpu: 500m
