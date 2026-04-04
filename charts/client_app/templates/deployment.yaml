@@ -21,7 +21,7 @@ spec:
           {{- toYaml .Values.resources | nindent 10 }}
         ports:
         - name: http
-          containerPort: 80
+          containerPort: {{ required "appPort value is required!" .Values.appPort }}
         envFrom:
           - secretRef:
               name: {{ .Release.Name }}-env
