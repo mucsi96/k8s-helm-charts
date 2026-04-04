@@ -1,4 +1,4 @@
-appPort: 80
+appPort: 8000
 metricsPort: 8085
 resources:
   requests:
