@@ -21,6 +21,49 @@ jobs:
           git config user.name "$GITHUB_ACTOR"
           git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
 
+      - name: Get next version for client-app
+        id: client-app-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: client-app
+          src: charts/client_app
+
+      - name: Get next version for spring-app
+        id: spring-app-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: spring-app
+          src: charts/spring_app
+
+      - name: Get next version for node-app
+        id: node-app-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: node-app
+          src: charts/node_app
+
+      - name: Get next version for postgres-db
+        id: postgres-db-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: postgres-db
+          src: charts/postgres_db
+
+      - name: Update chart versions
+        run: |
+          update_version() {
+            local chart_dir=$1
+            local version=$2
+            if [ -n "$version" ]; then
+              sed -i "s/^version: .*/version: ${version}.0.0/" "$chart_dir/Chart.yaml"
+            fi
+          }
+
+          update_version charts/client_app "${{ steps.client-app-version.outputs.version }}"
+          update_version charts/spring_app "${{ steps.spring-app-version.outputs.version }}"
+          update_version charts/node_app "${{ steps.node-app-version.outputs.version }}"
+          update_version charts/postgres_db "${{ steps.postgres-db-version.outputs.version }}"
+
       - name: Install Helm
         uses: azure/setup-helm@v4
 
