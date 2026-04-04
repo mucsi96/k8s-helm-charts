@@ -3,6 +3,15 @@ entries:
   client-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-04-04T09:44:40.21961685Z"
+    description: A Helm chart for client app deployment
+    digest: 4bb87ddb2e6d4e2bfe7bc4f7a3ff91d31eeb227481be524b48929da21a623c25
+    name: client-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/client-app-17.0.0/client-app-17.0.0.tgz
+    version: 17.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-04-04T08:04:29.180368218Z"
     description: A Helm chart for client app deployment
     digest: 53c2b9149ec863d26049c11371d02a2fbd118dc1fd36d1ad6390f19420a15342
@@ -58,4 +67,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
     version: 26.0.0
-generated: "2026-04-04T08:04:29.765110068Z"
+generated: "2026-04-04T09:44:40.219636687Z"
