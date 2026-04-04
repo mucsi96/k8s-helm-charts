@@ -3,6 +3,15 @@ entries:
   client-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-04-04T08:04:29.180368218Z"
+    description: A Helm chart for client app deployment
+    digest: 53c2b9149ec863d26049c11371d02a2fbd118dc1fd36d1ad6390f19420a15342
+    name: client-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/client-app-16.0.0/client-app-16.0.0.tgz
+    version: 16.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-04-04T07:59:26.581230365Z"
     description: A Helm chart for client app deployment
     digest: c8ac0f1059edbfd461f651135c64c89b7975281f33c1efa86338353118a6a5cc
@@ -19,4 +28,34 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/client-app-0.1.0/client-app-0.1.0.tgz
     version: 0.1.0
-generated: "2026-04-04T07:59:26.58123807Z"
+  node-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-04-04T08:04:29.383163331Z"
+    description: A Helm chart for NodeJs app deployment
+    digest: 18d602fc8a50003cf7e9440b2bb31b4826a6e6d12d8b176ff69d0ec092fde831
+    name: node-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-15.0.0/node-app-15.0.0.tgz
+    version: 15.0.0
+  postgres-db:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-04-04T08:04:29.562740971Z"
+    description: A Helm chart for Postgres database deployment
+    digest: d05624750c58213a24e6cfa53481e942ccc7a68d49260ed63444e5e830ad91f1
+    name: postgres-db
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/postgres-db-13.0.0/postgres-db-13.0.0.tgz
+    version: 13.0.0
+  spring-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-04-04T08:04:29.765092925Z"
+    description: A Helm chart for Spring app deployment
+    digest: e7f29224df027a5d22ddc57b7b30a64af2023389a854b049957e89f246e2aa44
+    name: spring-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
+    version: 26.0.0
+generated: "2026-04-04T08:04:29.765110068Z"
