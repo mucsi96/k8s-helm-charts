@@ -57,6 +57,16 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/postgres-db-13.0.0/postgres-db-13.0.0.tgz
     version: 13.0.0
+  redis:
+  - apiVersion: v2
+    appVersion: "7.4"
+    created: "2026-05-05T12:34:31.132370926Z"
+    description: A Helm chart for deploying Redis as a session store for oauth2-proxy
+    digest: eeb1fe0ce8e33dd5fdfb5fb6a792f01cb7646586c4602f7eb6b2fdcb2a4e473e
+    name: redis
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/redis-1.0.0/redis-1.0.0.tgz
+    version: 1.0.0
   spring-app:
   - apiVersion: v2
     appVersion: "1.0"
@@ -67,4 +77,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
     version: 26.0.0
-generated: "2026-04-04T09:44:40.219636687Z"
+generated: "2026-05-05T12:34:31.132384692Z"
