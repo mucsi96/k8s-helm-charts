@@ -24,12 +24,7 @@ spec:
         command:
           - redis-server
         args:
-          - --requirepass
-          - $(REDIS_PASSWORD)
-          - --appendonly
-          - "yes"
-          - --dir
-          - /data
+          - /etc/redis/redis.conf
         ports:
           - name: redis
             containerPort: 6379
@@ -39,6 +34,11 @@ spec:
               secretKeyRef:
                 name: {{ .Release.Name }}
                 key: password
+        startupProbe:
+          tcpSocket:
+            port: redis
+          initialDelaySeconds: 5
+          failureThreshold: 12
         livenessProbe:
           tcpSocket:
             port: redis
@@ -48,12 +48,21 @@ spec:
             command:
               - sh
               - -c
-              - redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG
+              - REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli ping | grep -q PONG
           initialDelaySeconds: 5
         volumeMounts:
+          - name: config
+            mountPath: /etc/redis
+            readOnly: true
           - name: data
             mountPath: /data
       volumes:
+      - name: config
+        secret:
+          secretName: {{ .Release.Name }}
+          items:
+            - key: redis.conf
+              path: redis.conf
       - name: data
         persistentVolumeClaim:
           claimName: {{ .Release.Name }}
