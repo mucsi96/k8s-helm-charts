@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}
+        image: redis:7.4 #https://github.com/docker-library/docs/tree/master/redis
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        command:
+          - redis-server
+        args:
+          - --requirepass
+          - $(REDIS_PASSWORD)
+          - --appendonly
+          - "yes"
+          - --dir
+          - /data
+        ports:
+          - name: redis
+            containerPort: 6379
+        env:
+          - name: REDIS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}
+                key: password
+        livenessProbe:
+          tcpSocket:
+            port: redis
+          initialDelaySeconds: 15
+        readinessProbe:
+          exec:
+            command:
+              - sh
+              - -c
+              - redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG
+          initialDelaySeconds: 5
+        volumeMounts:
+          - name: data
+            mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: {{ .Release.Name }}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: redis
+description: A Helm chart for deploying Redis as a session store for oauth2-proxy
+version: 0.1.0
+appVersion: "7.4"
