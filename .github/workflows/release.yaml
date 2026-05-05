@@ -49,6 +49,13 @@ jobs:
           prefix: postgres-db
           src: charts/postgres_db
 
+      - name: Get next version for redis
+        id: redis-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: redis
+          src: charts/redis
+
       - name: Update chart versions
         run: |
           update_version() {
@@ -63,6 +70,7 @@ jobs:
           update_version charts/spring_app "${{ steps.spring-app-version.outputs.version }}"
           update_version charts/node_app "${{ steps.node-app-version.outputs.version }}"
           update_version charts/postgres_db "${{ steps.postgres-db-version.outputs.version }}"
+          update_version charts/redis "${{ steps.redis-version.outputs.version }}"
 
       - name: Install Helm
         uses: azure/setup-helm@v4

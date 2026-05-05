@@ -1,0 +1,13 @@
+port: 6379
+resources:
+  requests:
+    memory: 64Mi
+    cpu: 10m
+  limits:
+    memory: 256Mi
+    cpu: 200m
+persistentVolumeClaim:
+  accessMode: "ReadWriteOnce"
+  storageClassName: ""
+  volumeName: ""
+  storage: "1Gi"

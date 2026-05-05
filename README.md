@@ -12,6 +12,7 @@ This repository contains reusable Helm charts for deploying various types of app
 - [node_app](#node_app) - Node.js backend applications
 - [spring_app](#spring_app) - Spring Boot Java applications
 - [postgres_db](#postgres_db) - PostgreSQL database with monitoring
+- [redis](#redis) - Redis session store for oauth2-proxy
 
 ---
 
@@ -249,6 +250,63 @@ persistentVolumeClaim:
   storageClassName: standard
   volumeName: pv-postgres-data
   storage: 10Gi
+```
+
+---
+
+## redis
+
+Deploys a single-instance Redis suitable for use as a session store for [oauth2-proxy](https://oauth2-proxy.github.io/oauth2-proxy/).
+
+### Required Values
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `password` | Redis AUTH password (stored as a secret) | `changeme` |
+
+### Optional Values
+
+| Parameter | Description | Example | Default |
+|-----------|-------------|---------|---------|
+| `port` | Service port for Redis | `6379` | `6379` |
+| `resources` | Container resource requests/limits | See below | See below |
+| `persistentVolumeClaim` | PVC configuration object | See below | See below |
+
+### Persistent Volume Claim Configuration
+
+| Field | Description | Example | Default |
+|-------|-------------|---------|---------|
+| `accessMode` | Access mode for the volume | `ReadWriteOnce` | `ReadWriteOnce` |
+| `storageClassName` | Storage class name for the PVC | `standard` | `""` |
+| `volumeName` | Persistent volume name to bind to | `pv-redis-data` | `""` |
+| `storage` | Storage size | `1Gi` | `1Gi` |
+
+### Features
+
+- Redis 7.4 with AOF persistence enabled
+- Password authentication via Kubernetes secret
+- Persistent storage for session durability across restarts
+- TCP liveness and authenticated readiness probes
+
+### Example values.yaml
+
+```yaml
+password: changeme
+port: 6379
+persistentVolumeClaim:
+  accessMode: ReadWriteOnce
+  storageClassName: standard
+  volumeName: pv-redis-data
+  storage: 1Gi
+```
+
+### Using with oauth2-proxy
+
+Configure oauth2-proxy with the following arguments:
+
+```
+--session-store-type=redis
+--redis-connection-url=redis://:<password>@<release-name>.<namespace>.svc.cluster.local:6379
 ```
 
 ---

@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    - {{ .Values.persistentVolumeClaim.accessMode }}
+  storageClassName: {{ .Values.persistentVolumeClaim.storageClassName | quote }}
+  volumeName: {{ .Values.persistentVolumeClaim.volumeName }}
+  resources:
+    requests:
+      storage: {{ .Values.persistentVolumeClaim.storage }}
