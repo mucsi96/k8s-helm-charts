@@ -5,6 +5,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .name }}
   namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ $.Release.Name }}
 spec:
   accessModes:
     - {{ .accessMode }}
