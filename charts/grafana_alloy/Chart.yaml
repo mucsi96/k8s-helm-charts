@@ -1,0 +1,5 @@
+apiVersion: v2
+name: grafana-alloy
+description: A Helm chart for deploying Grafana Alloy as a telemetry collector
+version: 0.1.0
+appVersion: "1.16.1"

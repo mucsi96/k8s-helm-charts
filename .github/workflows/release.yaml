@@ -56,6 +56,13 @@ jobs:
           prefix: redis
           src: charts/redis
 
+      - name: Get next version for grafana-alloy
+        id: grafana-alloy-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: grafana-alloy
+          src: charts/grafana_alloy
+
       - name: Update chart versions
         run: |
           update_version() {
@@ -71,6 +78,7 @@ jobs:
           update_version charts/node_app "${{ steps.node-app-version.outputs.version }}"
           update_version charts/postgres_db "${{ steps.postgres-db-version.outputs.version }}"
           update_version charts/redis "${{ steps.redis-version.outputs.version }}"
+          update_version charts/grafana_alloy "${{ steps.grafana-alloy-version.outputs.version }}"
 
       - name: Install Helm
         uses: azure/setup-helm@v4

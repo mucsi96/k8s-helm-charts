@@ -13,6 +13,7 @@ This repository contains reusable Helm charts for deploying various types of app
 - [spring_app](#spring_app) - Spring Boot Java applications
 - [postgres_db](#postgres_db) - PostgreSQL database with monitoring
 - [redis](#redis) - Redis session store for oauth2-proxy
+- [grafana_alloy](#grafana_alloy) - Grafana Alloy telemetry collector
 
 ---
 
@@ -307,6 +308,68 @@ Configure oauth2-proxy with the following arguments:
 ```
 --session-store-type=redis
 --redis-connection-url=redis://:<password>@<release-name>.<namespace>.svc.cluster.local:6379
+```
+
+---
+
+## grafana_alloy
+
+Deploys [Grafana Alloy](https://grafana.com/oss/alloy/) as a single-replica
+telemetry collector for metrics, logs, and traces. The chart provisions a
+ServiceAccount with cluster-wide read access for Kubernetes service discovery
+and stores the Alloy configuration in a ConfigMap.
+
+### Required Values
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `config` | Alloy configuration in [Alloy syntax](https://grafana.com/docs/alloy/latest/reference/) | See example below |
+
+### Optional Values
+
+| Parameter | Description | Example | Default |
+|-----------|-------------|---------|---------|
+| `port` | HTTP server port | `12345` | `12345` |
+| `env` | Environment variables stored as a secret and exposed via `envFrom` | See example below | `{}` |
+
+### Features
+
+- Grafana Alloy v1.16.1
+- ConfigMap-based configuration with automatic pod restart on change
+- ServiceAccount with cluster-wide read access for Kubernetes service discovery
+- Optional environment variables stored in a Secret (e.g. for Grafana Cloud credentials)
+- Liveness and readiness probes against `/-/ready`
+
+### Example values.yaml
+
+```yaml
+port: 12345
+env:
+  GRAFANA_CLOUD_USERNAME: "12345"
+  GRAFANA_CLOUD_API_KEY: "glc_xxx"
+config: |
+  logging {
+    level = "info"
+  }
+
+  prometheus.remote_write "default" {
+    endpoint {
+      url = "https://prometheus-prod.grafana.net/api/prom/push"
+      basic_auth {
+        username = sys.env("GRAFANA_CLOUD_USERNAME")
+        password = sys.env("GRAFANA_CLOUD_API_KEY")
+      }
+    }
+  }
+
+  discovery.kubernetes "pods" {
+    role = "pod"
+  }
+
+  prometheus.scrape "pods" {
+    targets    = discovery.kubernetes.pods.targets
+    forward_to = [prometheus.remote_write.default.receiver]
+  }
 ```
 
 ---

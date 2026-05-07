@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        {{- if .Values.env }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ .Release.Name }}
+      containers:
+      - name: {{ .Release.Name }}
+        image: grafana/alloy:v1.16.1 #https://github.com/grafana/alloy/releases
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        args:
+          - run
+          - /etc/alloy/config.alloy
+          - --server.http.listen-addr=0.0.0.0:{{ .Values.port }}
+          - --storage.path=/var/lib/alloy/data
+        ports:
+          - name: http
+            containerPort: {{ required "port value is required!" .Values.port }}
+        {{- if .Values.env }}
+        envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}-env
+        {{- end }}
+        env:
+          - name: HOSTNAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        livenessProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          initialDelaySeconds: 15
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: http
+          initialDelaySeconds: 5
+        volumeMounts:
+          - name: config
+            mountPath: /etc/alloy
+            readOnly: true
+          - name: data
+            mountPath: /var/lib/alloy/data
+      volumes:
+        - name: config
+          configMap:
+            name: {{ .Release.Name }}
+        - name: data
+          emptyDir: {}
