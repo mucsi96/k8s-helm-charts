@@ -3,6 +3,15 @@ entries:
   client-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-05-07T13:56:22.070573161Z"
+    description: A Helm chart for client app deployment
+    digest: 34ef52864a2dc31aa499a82d41f6ac5ca5b450724eae270aca2d1548f63ca4b5
+    name: client-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/client-app-19.0.0/client-app-19.0.0.tgz
+    version: 19.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-05-07T13:01:52.084740464Z"
     description: A Helm chart for client app deployment
     digest: 66fd8e0d162f76f31fc377fd539479dbfb25f06f9de10635aa9fedc07d5de2fe
@@ -49,6 +58,15 @@ entries:
   node-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-05-07T13:56:22.219027609Z"
+    description: A Helm chart for NodeJs app deployment
+    digest: 0c9be8e73c0feb8e77be2b764e8db8f62124f06a8f4e263c0f5300a353001d0e
+    name: node-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-17.0.0/node-app-17.0.0.tgz
+    version: 17.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-05-07T13:01:52.256391436Z"
     description: A Helm chart for NodeJs app deployment
     digest: 76a1a2e03504a7f6420e927d21c4e1032e8824f7305710e0ebf5f9f4cc6dc9af
@@ -66,6 +84,15 @@ entries:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-15.0.0/node-app-15.0.0.tgz
     version: 15.0.0
   postgres-db:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-05-07T13:56:22.363629221Z"
+    description: A Helm chart for Postgres database deployment
+    digest: b2b90c5b1a5153fe909b9848fdf534deab81c5afd4bd263e81c56570c4892f81
+    name: postgres-db
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/postgres-db-15.0.0/postgres-db-15.0.0.tgz
+    version: 15.0.0
   - apiVersion: v2
     appVersion: "1.0"
     created: "2026-05-07T13:01:52.448983736Z"
@@ -87,6 +114,15 @@ entries:
   redis:
   - apiVersion: v2
     appVersion: "7.4"
+    created: "2026-05-07T13:56:22.506988627Z"
+    description: A Helm chart for deploying Redis as a session store for oauth2-proxy
+    digest: 2337a31cb07105546aba867d4fdb34ee80f9b7cd9e99591d02197962e1e71f67
+    name: redis
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/redis-2.0.0/redis-2.0.0.tgz
+    version: 2.0.0
+  - apiVersion: v2
+    appVersion: "7.4"
     created: "2026-05-05T12:34:31.132370926Z"
     description: A Helm chart for deploying Redis as a session store for oauth2-proxy
     digest: eeb1fe0ce8e33dd5fdfb5fb6a792f01cb7646586c4602f7eb6b2fdcb2a4e473e
@@ -95,6 +131,15 @@ entries:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/redis-1.0.0/redis-1.0.0.tgz
     version: 1.0.0
   spring-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-05-07T13:56:22.662837859Z"
+    description: A Helm chart for Spring app deployment
+    digest: 07411592d9e65f174bc0cd57f42d34c359be7583a55130fa24963bbc11844906
+    name: spring-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-28.0.0/spring-app-28.0.0.tgz
+    version: 28.0.0
   - apiVersion: v2
     appVersion: "1.0"
     created: "2026-05-07T13:01:52.612244549Z"
@@ -113,4 +158,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
     version: 26.0.0
-generated: "2026-05-07T13:01:52.612294282Z"
+generated: "2026-05-07T13:56:22.662941242Z"
