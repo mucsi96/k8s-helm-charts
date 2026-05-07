@@ -3,6 +3,8 @@ kind: Deployment
 metadata:
   name: {{ .Release.Name }}
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
 spec:
   selector:
     matchLabels:
@@ -13,6 +15,8 @@ spec:
     metadata:
       labels:
         app: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
       annotations:
         checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
     spec:

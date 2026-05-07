@@ -3,6 +3,8 @@ kind: IngressRoute
 metadata:
   name: {{ .Release.Name }}-route
   namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
 spec:
   entryPoints:
     - {{ required "entryPoint value is required!" .Values.entryPoint }}
