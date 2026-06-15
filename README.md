@@ -27,8 +27,7 @@ Deploys a static frontend application using nginx, suitable for React, Vue, Angu
 | `image` | Container image for the application | `myregistry.io/my-app:1.0.0` |
 | `appPort` | Application port (nginx port) | `80` |
 | `metricsPort` | Metrics exporter port | `8085` |
-| `host` | Hostname for the Ingress route | `myapp.example.com` |
-| `entryPoint` | Traefik entrypoint to use | `websecure` |
+| `host` | Hostname for the HTTPRoute | `myapp.example.com` |
 
 ### Optional Values
 
@@ -44,7 +43,6 @@ image: myregistry.io/my-frontend-app:1.0.0
 appPort: 80
 metricsPort: 8085
 host: myapp.example.com
-entryPoint: websecure
 basePath: /dashboard
 env:
   API_URL: https://api.example.com
@@ -63,8 +61,7 @@ Deploys a Node.js backend application with support for Azure Workload Identity a
 |-----------|-------------|---------|
 | `image` | Container image for the application | `myregistry.io/my-node-app:1.0.0` |
 | `appPort` | Application port | `8080` |
-| `host` | Hostname for the Ingress route | `api.example.com` |
-| `entryPoint` | Traefik entrypoint to use | `websecure` |
+| `host` | Hostname for the HTTPRoute | `api.example.com` |
 | `serviceAccountName` | Kubernetes service account name | `my-app-sa` |
 | `clientId` | Azure AD client ID for workload identity | `12345678-1234-1234-1234-123456789abc` |
 
@@ -81,7 +78,6 @@ Deploys a Node.js backend application with support for Azure Workload Identity a
 image: myregistry.io/my-node-app:1.0.0
 appPort: 8080
 host: api.example.com
-entryPoint: websecure
 basePath: /api/v1
 serviceAccountName: my-node-app-sa
 clientId: 12345678-1234-1234-1234-123456789abc
@@ -104,8 +100,7 @@ Deploys a Spring Boot application with support for Spring Boot Actuator, Azure W
 | `image` | Container image for the application | `myregistry.io/my-spring-app:1.0.0` |
 | `appPort` | Application port | `8080` |
 | `springActuatorPort` | Spring Actuator management port | `8082` |
-| `host` | Hostname for the Ingress route | `api.example.com` |
-| `entryPoint` | Traefik entrypoint to use | `websecure` |
+| `host` | Hostname for the HTTPRoute | `api.example.com` |
 | `serviceAccountName` | Kubernetes service account name | `my-app-sa` |
 | `clientId` | Azure AD client ID for workload identity | `12345678-1234-1234-1234-123456789abc` |
 | `springAdminServerHost` | Spring Boot Admin server hostname | `spring-admin.example.com` |
@@ -150,7 +145,6 @@ image: myregistry.io/my-spring-app:1.0.0
 appPort: 8080
 springActuatorPort: 8082
 host: api.example.com
-entryPoint: websecure
 basePath: /api
 serviceAccountName: my-spring-app-sa
 clientId: 12345678-1234-1234-1234-123456789abc
@@ -222,7 +216,7 @@ The `persistentVolumeClaim` parameter accepts an object with the following field
 
 ### Features
 
-- PostgreSQL 17.6 with configurable persistent storage
+- PostgreSQL 18.4 with configurable persistent storage
 - Prometheus metrics exporter for monitoring
 - Automatic database initialization with custom SQL
 - Automatic creation of exporter user with `pg_monitor` role
@@ -283,7 +277,7 @@ Deploys a single-instance Redis suitable for use as a session store for [oauth2-
 
 ### Features
 
-- Redis 7.4 with AOF persistence enabled
+- Redis 8.8 with AOF persistence enabled
 - Password authentication via Kubernetes secret
 - Persistent storage for session durability across restarts
 - TCP liveness and authenticated readiness probes
@@ -328,9 +322,9 @@ All charts include:
 
 ### Routing
 
-- Traefik IngressRoute resources
+- Kubernetes Gateway API `HTTPRoute` resources
 - Support for path-based and host-based routing
-- Configurable entry points
+- Attaches to the shared `traefik` Gateway (`websecure` listener)
 
 ### Resource Management
 
