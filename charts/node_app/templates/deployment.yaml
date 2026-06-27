@@ -17,7 +17,8 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name }}
         azure.workload.identity/use: 'true'
       annotations:
-        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        checksum/secret_env: {{ include (print $.Template.BasePath "/secret_env.yaml") . | sha256sum }}
+        checksum/secret_config_files: {{ include (print $.Template.BasePath "/secret_config_files.yaml") . | sha256sum }}
     spec:
       serviceAccountName: {{ .Values.serviceAccountName }}
       containers:
@@ -49,3 +50,22 @@ spec:
           preStop:
             exec:
               command: ["sh", "-c", "sleep 10"]
+        volumeMounts:
+{{- range .Values.configFile }}
+          - name: secret-config-files
+            mountPath: {{ .mountPath }}
+            subPath: {{ .name }}
+{{- end }}
+{{- range .Values.persistentVolumeClaims }}
+          - name: pvc-{{ .name }}
+            mountPath: {{ .mountPath }}
+{{- end }}
+      volumes:
+        - name: secret-config-files
+          secret:
+            secretName: {{ .Release.Name }}-config-files
+{{- range .Values.persistentVolumeClaims }}
+        - name: pvc-{{ .name }}
+          persistentVolumeClaim:
+            claimName: {{ .name }}
+{{- end }}

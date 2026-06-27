@@ -15,6 +15,7 @@ helm install my-node-app mucsi96/node-app
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `appPort` | Port the application listens on | `8080` |
+| `persistentVolumeClaims` | List of PVC configurations | `[]` |
 | `resources.requests.memory` | Memory request | `300Mi` |
 | `resources.requests.cpu` | CPU request | `20m` |
 | `resources.limits.memory` | Memory limit | `500Mi` |
