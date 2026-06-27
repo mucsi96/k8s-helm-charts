@@ -76,6 +76,15 @@ entries:
   node-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-06-27T13:38:11.621557133Z"
+    description: A Helm chart for NodeJs app deployment
+    digest: 18463b4e5ec2492671bb73226d83432b99b13fcf1139e20c4a42a12da908ccdb
+    name: node-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-19.0.0/node-app-19.0.0.tgz
+    version: 19.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-06-15T13:06:28.741500749Z"
     description: A Helm chart for NodeJs app deployment
     digest: e6a8aef9857f23d8c51371c6c45bb3826d06416566e1538607292a291e4a768d
@@ -212,4 +221,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
     version: 26.0.0
-generated: "2026-06-15T13:06:29.232995076Z"
+generated: "2026-06-27T13:38:11.621878181Z"
