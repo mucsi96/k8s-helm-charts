@@ -1,4 +1,5 @@
 appPort: 8080
+persistentVolumeClaims: []
 resources:
   requests:
     memory: 300Mi
