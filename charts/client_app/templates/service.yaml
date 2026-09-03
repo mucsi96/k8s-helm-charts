@@ -11,9 +11,5 @@ spec:
       targetPort: http
       protocol: TCP
       name: http
-    - port: {{ required "metricsPort value is required!" .Values.metricsPort }}
-      targetPort: metrics
-      protocol: TCP
-      name: metrics
   selector:
     app: {{ .Release.Name }}
