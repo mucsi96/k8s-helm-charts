@@ -4,14 +4,14 @@ Helm charts for application deployments in Kubernetes
 
 ## Overview
 
-This repository contains reusable Helm charts for deploying various types of applications and databases in Kubernetes clusters. Each chart is designed with best practices and includes support for monitoring, secrets management, and routing.
+This repository contains reusable Helm charts for deploying various types of applications and databases in Kubernetes clusters. Each chart is designed with best practices and includes support for secrets management, and routing.
 
 ## Available Charts
 
 - [client_app](#client_app) - Static frontend applications (nginx-based)
 - [node_app](#node_app) - Node.js backend applications
 - [spring_app](#spring_app) - Spring Boot Java applications
-- [postgres_db](#postgres_db) - PostgreSQL database with monitoring
+- [postgres_db](#postgres_db) - PostgreSQL database
 - [redis](#redis) - Redis session store for oauth2-proxy
 
 ---
@@ -26,7 +26,6 @@ Deploys a static frontend application using nginx, suitable for React, Vue, Angu
 |-----------|-------------|---------|
 | `image` | Container image for the application | `myregistry.io/my-app:1.0.0` |
 | `appPort` | Application port (nginx port) | `80` |
-| `metricsPort` | Metrics exporter port | `8085` |
 | `host` | Hostname for the HTTPRoute | `myapp.example.com` |
 
 ### Optional Values
@@ -41,7 +40,6 @@ Deploys a static frontend application using nginx, suitable for React, Vue, Angu
 ```yaml
 image: myregistry.io/my-frontend-app:1.0.0
 appPort: 80
-metricsPort: 8085
 host: myapp.example.com
 basePath: /dashboard
 env:
@@ -182,7 +180,7 @@ persistentVolumeClaims:
 
 ## postgres_db
 
-Deploys a PostgreSQL database with Prometheus metrics exporter and persistent storage.
+Deploys a PostgreSQL database with persistent storage.
 
 ### Required Values
 
@@ -190,11 +188,8 @@ Deploys a PostgreSQL database with Prometheus metrics exporter and persistent st
 |-----------|-------------|---------|
 | `name` | Database name | `myappdb` |
 | `port` | PostgreSQL port | `5432` |
-| `metricsPort` | Prometheus exporter port | `8085` |
 | `username` | Database username (stored as secret) | `myuser` |
 | `password` | Database password (stored as secret) | `mypassword` |
-| `exporterUsername` | Prometheus exporter username | `exporter` |
-| `exporterPassword` | Prometheus exporter password | `exporterpass` |
 
 ### Optional Values
 
@@ -217,21 +212,15 @@ The `persistentVolumeClaim` parameter accepts an object with the following field
 ### Features
 
 - PostgreSQL 18.4 with configurable persistent storage
-- Prometheus metrics exporter for monitoring
 - Automatic database initialization with custom SQL
-- Automatic creation of exporter user with `pg_monitor` role
-- Service monitor for Prometheus integration
 
 ### Example values.yaml
 
 ```yaml
 name: myappdb
 port: 5432
-metricsPort: 8085
 username: myuser
 password: securepassword123
-exporterUsername: exporter
-exporterPassword: exporterpass456
 initSql: |
   CREATE TABLE users (
     id SERIAL PRIMARY KEY,
@@ -307,11 +296,9 @@ Configure oauth2-proxy with the following arguments:
 
 ## Common Features
 
-### Monitoring
+### Health Checks
 
-All charts include:
-- ServiceMonitor resources for Prometheus integration
-- Metrics endpoints properly configured
+Charts include:
 - Health check probes (where applicable)
 
 ### Security

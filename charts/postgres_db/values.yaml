@@ -1,5 +1,4 @@
 port: 5432
-metricsPort: 8085
 initSql: ""
 resources:
   requests:

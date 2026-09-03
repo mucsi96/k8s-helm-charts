@@ -46,36 +46,6 @@ spec:
             mountPath: /var/lib/postgresql/data
           - name: initdb
             mountPath: /docker-entrypoint-initdb.d
-      - name: {{ .Release.Name }}-prometheus-exporter
-        image: prometheuscommunity/postgres-exporter:v0.19.1 #https://github.com/prometheus-community/postgres_exporter/releases
-        ports:
-          - name: metrics
-            containerPort: 9187
-        env:
-          - name: POSTGRES_DB
-            value: {{ required "name value is required!" .Values.name }}
-          - name: POSTGRES_USER
-            valueFrom:
-              secretKeyRef:
-                name: {{ .Release.Name }}
-                key: exporterUsername
-          - name: POSTGRES_PASSWORD
-            valueFrom:
-              secretKeyRef:
-                name: {{ .Release.Name }}
-                key: exporterPassword
-          - name: DATA_SOURCE_NAME
-            value: postgresql://$(POSTGRES_USER):$(POSTGRES_PASSWORD)@localhost:5432/$(POSTGRES_DB)?sslmode=disable
-        livenessProbe:
-          httpGet:
-            path: /
-            port: metrics
-          initialDelaySeconds: 15
-        startupProbe:
-          httpGet:
-            path: /
-            port: metrics
-          initialDelaySeconds: 5
       volumes:
       - name: ssv
         persistentVolumeClaim:
@@ -86,5 +56,3 @@ spec:
           items:
             - key: initdbSql
               path: initdb.sql
-            - key: grantSql
-              path: grant.sql

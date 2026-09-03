@@ -15,7 +15,6 @@ helm install my-client-app mucsi96/client-app
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `appPort` | Port the application listens on | `8000` |
-| `metricsPort` | Port for Prometheus metrics | `8085` |
 | `resources.requests.memory` | Memory request | `20Mi` |
 | `resources.requests.cpu` | CPU request | `20m` |
 | `resources.limits.memory` | Memory limit | `100Mi` |
