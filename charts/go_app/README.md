@@ -28,8 +28,8 @@ helm upgrade my-go-app mucsi96/go-app --install \
 | `appPort` | Application container and Service port; sets `SERVER_PORT` | `8080` |
 | `managementPort` | Health listener container and Service port; sets `MANAGEMENT_PORT` | `8082` |
 | `basePath` | Route prefix, also supplied as `BASE_PATH` | `/` |
-| `health.livenessPath` | Liveness endpoint on the management listener | `/actuator/health/liveness` |
-| `health.readinessPath` | Readiness and startup endpoint on the management listener | `/actuator/health/readiness` |
+| `health.livenessPath` | Liveness endpoint on the management listener | `/health/liveness` |
+| `health.readinessPath` | Readiness and startup endpoint on the management listener | `/health/readiness` |
 | `env` | Environment variables stored in a Secret | `{}` |
 | `configFile` | Config secrets with `name`, `mountPath` and base64-encoded `data` | `[]` |
 | `persistentVolumeClaims` | PVCs with `name`, `mountPath`, `accessMode`, `storageClassName`, `volumeName`, `storage` | `[]` |
@@ -58,6 +58,9 @@ and `resources` values, changing the chart name to `mucsi96/go-app`.
 Replace `springActuatorPort` with `managementPort` if overridden. The default
 remains 8082; its named port changes from `actuator` to `management`.
 Spring Admin and servlet-context environment variables are not emitted.
+The Go service implements `/health/liveness` and `/health/readiness` directly;
+these endpoints do not depend on Spring Actuator. Override `health` paths if
+the service uses different endpoints.
 Readiness is checked in addition to the existing startup and liveness probes.
 The route continues to attach to the shared Traefik `websecure` Gateway listener.
 

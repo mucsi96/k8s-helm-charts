@@ -5,8 +5,8 @@ env: {}
 configFile: []
 persistentVolumeClaims: []
 health:
-  livenessPath: /actuator/health/liveness
-  readinessPath: /actuator/health/readiness
+  livenessPath: /health/liveness
+  readinessPath: /health/readiness
 resources:
   requests:
     memory: 300Mi
