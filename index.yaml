@@ -82,6 +82,16 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/client-app-0.1.0/client-app-0.1.0.tgz
     version: 0.1.0
+  go-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-09-19T18:55:00.736585115Z"
+    description: A Helm chart for Go app deployment
+    digest: 9cfdea0fc4af1edb3998e92b97a33e7d9588dde91f1118951252e8f2ebb2946c
+    name: go-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/go-app-1.0.0/go-app-1.0.0.tgz
+    version: 1.0.0
   node-app:
   - apiVersion: v2
     appVersion: "1.0"
@@ -257,4 +267,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
     version: 26.0.0
-generated: "2026-09-03T06:26:29.846334715Z"
+generated: "2026-09-19T18:55:00.736642772Z"
