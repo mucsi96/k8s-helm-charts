@@ -1,0 +1,16 @@
+appPort: 8080
+managementPort: 8082
+basePath: /
+env: {}
+configFile: []
+persistentVolumeClaims: []
+health:
+  livenessPath: /health/liveness
+  readinessPath: /health/readiness
+resources:
+  requests:
+    memory: 300Mi
+    cpu: 20m
+  limits:
+    memory: 500Mi
+    cpu: 500m

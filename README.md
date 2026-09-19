@@ -11,6 +11,7 @@ This repository contains reusable Helm charts for deploying various types of app
 - [client_app](#client_app) - Static frontend applications (nginx-based)
 - [node_app](#node_app) - Node.js backend applications
 - [spring_app](#spring_app) - Spring Boot Java applications
+- [go_app](#go_app) - Go HTTP applications with a management listener
 - [postgres_db](#postgres_db) - PostgreSQL database
 - [redis](#redis) - Redis session store for oauth2-proxy
 
@@ -178,6 +179,41 @@ persistentVolumeClaims:
 
 ---
 
+## go_app
+
+Deploys Go HTTP services using the same chart structure and values as
+`spring_app`, including Azure Workload Identity, environment/config secrets,
+HTTPRoute, resources and persistent storage.
+
+The application receives `SERVER_PORT` (default 8080), `MANAGEMENT_PORT`
+(default 8082), `BASE_PATH` and `K8S_POD_IP`. Liveness, readiness and startup
+probes use the management listener. Spring-specific environment variables are
+replaced by these runtime settings.
+
+```yaml
+image: myregistry.io/my-go-app:1.0.0
+host: api.example.com
+basePath: /api
+serviceAccountName: my-go-app-sa
+clientId: 12345678-1234-1234-1234-123456789abc
+env:
+  AZURE_KEYVAULT_ENDPOINT: https://example.vault.azure.net/
+  STORAGE_DIRECTORY: /app/storage
+persistentVolumeClaims:
+  - name: go-app-data
+    mountPath: /app/storage
+    accessMode: ReadWriteOnce
+    storageClassName: ""
+    volumeName: go-app-data
+    storage: 5Gi
+```
+
+See [Go App Helm Chart](charts/go_app/README.md) for the complete values and
+Spring-to-Go migration guide. The existing release workflow publishes it as
+`mucsi96/go-app` using the `go-app` version prefix.
+
+---
+
 ## postgres_db
 
 Deploys a PostgreSQL database with persistent storage.
@@ -304,7 +340,7 @@ Charts include:
 ### Security
 
 - Secrets management for sensitive data
-- Azure Workload Identity support (node_app, spring_app)
+- Azure Workload Identity support (node_app, spring_app, go_app)
 - Service accounts with proper permissions
 
 ### Routing

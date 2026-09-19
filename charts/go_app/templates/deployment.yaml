@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+        app.kubernetes.io/name: {{ .Release.Name }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        azure.workload.identity/use: 'true'
+      annotations:
+        checksum/secret_env: {{ include (print $.Template.BasePath "/secret_env.yaml") . | sha256sum }}
+        checksum/secret_config_files: {{ include (print $.Template.BasePath "/secret_config_files.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ required "serviceAccountName value is required!" .Values.serviceAccountName }}
+      containers:
+      - name: {{ .Release.Name }}
+        image: {{ required "image value is required!" .Values.image }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.appPort }}
+        - name: management
+          containerPort: {{ .Values.managementPort }}
+        envFrom:
+          - secretRef:
+              name: {{ .Release.Name }}-env
+        env:
+          - name: SERVER_PORT
+            value: {{ .Values.appPort | quote }}
+          - name: MANAGEMENT_PORT
+            value: {{ .Values.managementPort | quote }}
+          - name: BASE_PATH
+            value: {{ .Values.basePath | quote }}
+          - name: K8S_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.health.livenessPath }}
+            port: management
+          initialDelaySeconds: 15
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.health.readinessPath }}
+            port: management
+        startupProbe:
+          httpGet:
+            path: {{ .Values.health.readinessPath }}
+            port: management
+          initialDelaySeconds: 10
+          failureThreshold: 30
+        lifecycle:
+          preStop:
+            exec:
+              command: ["sh", "-c", "sleep 10"]
+        volumeMounts:
+{{- range .Values.configFile }}
+          - name: secret-config-files
+            mountPath: {{ .mountPath }}
+            subPath: {{ .name }}
+{{- end }}
+{{- range .Values.persistentVolumeClaims }}
+          - name: pvc-{{ .name }}
+            mountPath: {{ .mountPath }}
+{{- end }}
+      volumes:
+        - name: secret-config-files
+          secret:
+            secretName: {{ .Release.Name }}-config-files
+{{- range .Values.persistentVolumeClaims }}
+        - name: pvc-{{ .name }}
+          persistentVolumeClaim:
+            claimName: {{ .name }}
+{{- end }}

@@ -35,6 +35,13 @@ jobs:
           prefix: spring-app
           src: charts/spring_app
 
+      - name: Get next version for go-app
+        id: go-app-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: go-app
+          src: charts/go_app
+
       - name: Get next version for node-app
         id: node-app-version
         uses: mucsi96/get-next-version@main
@@ -68,6 +75,7 @@ jobs:
 
           update_version charts/client_app "${{ steps.client-app-version.outputs.version }}"
           update_version charts/spring_app "${{ steps.spring-app-version.outputs.version }}"
+          update_version charts/go_app "${{ steps.go-app-version.outputs.version }}"
           update_version charts/node_app "${{ steps.node-app-version.outputs.version }}"
           update_version charts/postgres_db "${{ steps.postgres-db-version.outputs.version }}"
           update_version charts/redis "${{ steps.redis-version.outputs.version }}"
