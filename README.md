@@ -390,6 +390,19 @@ Charts include:
 
 ## Usage
 
+### Chart release versioning
+
+Charts publish major-only SemVer tags (`<chart>-N.0.0`); older releases used
+integer tags (`<chart>-N`). The shared `get-next-version` action accepts integer
+tags. Before invoking it, the release job adds runner-local integer aliases for
+published `N.0.0` tags, pointing at the exact published commits. Aliases are never
+pushed and existing tags are never overwritten. This preserves the shared
+action's source-change and global highest-version calculation across both eras.
+
+Chart-releaser skips already-published versions so unchanged charts and retries
+cannot block a new chart release. Release jobs are serialized. Validate this
+boundary with `python3 scripts/check_chart_version_tags.py`.
+
 ### Installing a Chart
 
 ```bash
