@@ -3,6 +3,15 @@ entries:
   client-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-15T13:28:47.266056737Z"
+    description: A Helm chart for client app deployment
+    digest: 6624ce9f15e3628b6b2f4fa9e3a4d10c5bd6f51ac8db305286a440993e9760d6
+    name: client-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/client-app-23.0.0/client-app-23.0.0.tgz
+    version: 23.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-09-03T06:26:29.341224554Z"
     description: A Helm chart for client app deployment
     digest: 0a0eacaad9cc457790e8c180fe1902b24b4d5aa8a0cbedac6da9daebd4f7c0b1
@@ -85,6 +94,15 @@ entries:
   go-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-15T13:28:47.63613604Z"
+    description: A Helm chart for Go app deployment
+    digest: 7fedf48a27a43260e634ef8971c12e132c3c32a67c03f1c83203ee84319c3849
+    name: go-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/go-app-2.0.0/go-app-2.0.0.tgz
+    version: 2.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-09-19T18:55:00.736585115Z"
     description: A Helm chart for Go app deployment
     digest: 9cfdea0fc4af1edb3998e92b97a33e7d9588dde91f1118951252e8f2ebb2946c
@@ -93,6 +111,15 @@ entries:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/go-app-1.0.0/go-app-1.0.0.tgz
     version: 1.0.0
   node-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-10-15T13:28:47.871597845Z"
+    description: A Helm chart for NodeJs app deployment
+    digest: a2f2dab147d23dd0620e227c6ae77d768e77b44f8bab4555098cc223355ee468
+    name: node-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-21.0.0/node-app-21.0.0.tgz
+    version: 21.0.0
   - apiVersion: v2
     appVersion: "1.0"
     created: "2026-09-03T06:26:29.518735582Z"
@@ -147,6 +174,21 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-15.0.0/node-app-15.0.0.tgz
     version: 15.0.0
+  oauth2-proxy-forwardauth:
+  - apiVersion: v2
+    appVersion: 7.15.2
+    created: "2026-10-15T13:28:48.174579138Z"
+    dependencies:
+    - name: oauth2-proxy
+      repository: https://oauth2-proxy.github.io/manifests
+      version: 10.4.3
+    description: Stock oauth2-proxy sessions with Traefik Gateway API ForwardAuth
+    digest: ad17aae7d07424e4059076a97088d4e06fbb715448980df4db894242c39448ba
+    name: oauth2-proxy-forwardauth
+    type: application
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/oauth2-proxy-forwardauth-1.0.0/oauth2-proxy-forwardauth-1.0.0.tgz
+    version: 1.0.0
   postgres-db:
   - apiVersion: v2
     appVersion: "1.0"
@@ -221,7 +263,27 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/redis-1.0.0/redis-1.0.0.tgz
     version: 1.0.0
+  rust-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-10-15T13:28:48.899925421Z"
+    description: A Helm chart for distroless Rust HTTP applications
+    digest: 8de0666b637e6d0cd09bafb3655466622c466840c3dbdc2997ff131c148e701e
+    name: rust-app
+    type: application
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/rust-app-1.0.0/rust-app-1.0.0.tgz
+    version: 1.0.0
   spring-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-10-15T13:28:49.303663134Z"
+    description: A Helm chart for Spring app deployment
+    digest: 8f69f736a5b995c19b0a545f230bed0148f2c262106f2227d8685a26d61357e6
+    name: spring-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-31.0.0/spring-app-31.0.0.tgz
+    version: 31.0.0
   - apiVersion: v2
     appVersion: "1.0"
     created: "2026-09-03T06:26:29.8462509Z"
@@ -267,4 +329,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
     version: 26.0.0
-generated: "2026-09-19T18:55:00.736642772Z"
+generated: "2026-10-15T13:28:49.303740589Z"
