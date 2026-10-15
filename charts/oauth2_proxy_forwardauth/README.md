@@ -79,10 +79,7 @@ They create exact host/path/method routes directly to that same-namespace API,
 preserving its caller bearer token. Use only for independently authenticated
 machine endpoints; their backend must reject a browser cookie alone.
 
-The dependency's default NetworkPolicy admits only Traefik in `kube-system` on
-4180. Configure selectors for your installation. Metrics are disabled by default;
-if enabling them, also permit the monitoring caller on the metrics port. Restrict
-application ingress to its trusted callers, especially header-authenticated apps.
+NetworkPolicy creation is disabled with `oauth2-proxy.networkPolicy.create: false`.
 
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
@@ -101,7 +98,7 @@ Gateway API v1.6.3 defines `ExternalAuth` in its experimental channel. Traefik
 v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and p07's v1.6.1
 standard-channel CRDs do not expose it. The two ForwardAuth Middleware CRDs are
 therefore the remaining implementation-specific part; routing, header policies,
-Services, ConfigMaps and NetworkPolicies use standard APIs.
+Services and ConfigMaps use standard APIs.
 
 - [GEP-1494 status](https://gateway-api.sigs.k8s.io/geps/gep-1494/)
 - [Traefik v3.7.14 filter switch](https://github.com/traefik/traefik/blob/v3.7.14/pkg/provider/kubernetes/gateway/httproute.go#L406-L479)

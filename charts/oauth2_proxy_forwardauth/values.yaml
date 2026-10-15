@@ -37,18 +37,7 @@ oauth2-proxy:
       standalone:
         connectionUrl: ""
   networkPolicy:
-    create: true
-    ingress:
-      - from:
-          - namespaceSelector:
-              matchLabels:
-                kubernetes.io/metadata.name: kube-system
-            podSelector:
-              matchLabels:
-                app.kubernetes.io/name: traefik
-        ports:
-          - protocol: TCP
-            port: 4180
+    create: false
   resources:
     requests:
       cpu: 5m
