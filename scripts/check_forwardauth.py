@@ -113,7 +113,7 @@ assert machine["filters"][0]["responseHeaderModifier"]["set"] == [{"name": "Cach
 values["machineRoutes"][0]["method"] = ""
 render("oauth2_proxy_forwardauth", values, success=False)
 
-for chart in ["client_app", "spring_app", "go_app", "node_app"]:
+for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     values = {"image": "example/app:1", "host": "hello.example.test", "serviceAccountName": "hello-api", "clientId": "example-client"}
     before = resource(render(chart, values), "HTTPRoute", "-route")
     assert "filters" not in before["spec"]["rules"][0]
@@ -123,4 +123,4 @@ for chart in ["client_app", "spring_app", "go_app", "node_app"]:
     del after["spec"]["rules"][0]["filters"]
     assert before == after
 
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 6, "compatibleAppCharts": 4, "exactMachineRoute": True, "customResourcesPerApp": 2}))
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 6, "compatibleAppCharts": 5, "exactMachineRoute": True, "customResourcesPerApp": 2}))

@@ -1,0 +1,38 @@
+appPort: 8080
+basePath: /
+routeFilters: []
+replicaCount: 1
+imagePullSecrets: []
+serviceAccountName: ""
+clientId: ""
+serviceAccount:
+  create: true
+  automountServiceAccountToken: false
+  annotations: {}
+env: {}
+envFrom: []
+configFile: []
+persistentVolumeClaims: []
+extraVolumes: []
+extraVolumeMounts: []
+podAnnotations: {}
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: [ALL]
+terminationGracePeriodSeconds: 30
+lifecycle: {}
+health:
+  livenessPath: /healthz
+  readinessPath: /healthz
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 256Mi

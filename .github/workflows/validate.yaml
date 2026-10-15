@@ -1,0 +1,29 @@
+name: Validate Charts
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: azure/setup-helm@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+      - name: Install validation dependencies
+        run: |
+          python3 -m pip install PyYAML
+          helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
+          helm dependency build charts/oauth2_proxy_forwardauth
+      - name: Validate Rust runtime and standard routing contracts
+        run: |
+          helm lint charts/rust_app --set image=example/rust-app:1 --set host=rust.example.com
+          python3 scripts/check_rust_app.py
+          python3 scripts/check_forwardauth.py
+          bash -n scripts/render_go_app.sh scripts/render_rust_app.sh
