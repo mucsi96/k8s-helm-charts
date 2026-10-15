@@ -79,8 +79,6 @@ They create exact host/path/method routes directly to that same-namespace API,
 preserving its caller bearer token. Use only for independently authenticated
 machine endpoints; their backend must reject a browser cookie alone.
 
-NetworkPolicy creation is disabled with `oauth2-proxy.networkPolicy.create: false`.
-
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
 helm dependency build charts/oauth2_proxy_forwardauth

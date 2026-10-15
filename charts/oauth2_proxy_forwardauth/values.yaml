@@ -36,8 +36,6 @@ oauth2-proxy:
       passwordKey: redis-password
       standalone:
         connectionUrl: ""
-  networkPolicy:
-    create: false
   resources:
     requests:
       cpu: 5m
