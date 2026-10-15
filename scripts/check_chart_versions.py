@@ -37,4 +37,7 @@ assert len(version_steps) == 8 and all(step["with"]["suffix"] == ".0.0" for step
 assert not any("prepare_chart_version_tags" in step.get("run", "") for step in steps)
 uploader = next(step for step in steps if step.get("uses", "").startswith("helm/chart-releaser-action@"))
 assert uploader["with"]["skip_existing"] is True
+validation = yaml.safe_load((ROOT / ".github/workflows/validate.yaml").read_text())
+published_action = next(step for step in validation["jobs"]["validate"]["steps"] if step.get("uses", "").startswith("mucsi96/get-next-version@"))
+assert published_action["with"]["suffix"] == ".0.0"
 print("Native suffix inputs, metadata updates and fail-closed legacy-output checks passed")

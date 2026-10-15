@@ -12,6 +12,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
       - uses: azure/setup-helm@v5
       - uses: actions/setup-python@v6
         with:
@@ -21,6 +23,18 @@ jobs:
           python3 -m pip install PyYAML
           helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
           helm dependency build charts/oauth2_proxy_forwardauth
+      - name: Resolve chart version with the released shared action
+        id: published-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: oauth2-proxy-forwardauth
+          suffix: '.0.0'
+          src: charts/oauth2_proxy_forwardauth
+      - name: Verify released action outputs update Helm metadata
+        env:
+          COUNTER: ${{ steps.published-version.outputs.version }}
+          TAG: ${{ steps.published-version.outputs.tag }}
+        run: python3 scripts/set_chart_version.py charts/oauth2_proxy_forwardauth/Chart.yaml "$COUNTER" "$TAG"
       - name: Validate Rust runtime and standard routing contracts
         run: |
           python3 scripts/check_chart_versions.py

@@ -400,7 +400,9 @@ and highest-version selection; no runner-local tag aliases are needed.
 `set_chart_version.py` validates the returned counter/tag against the chart name
 before writing Helm metadata. An old action that ignores the suffix input fails
 before publication instead of silently attempting duplicate versions. The
-suffix-aware shared action must be available on its `main` ref first.
+suffix-aware shared action is available through its documented `@main` channel.
+PR validation invokes that released action directly with the chart suffix and
+applies its returned outputs before running the chart checks.
 
 Chart-releaser skips already-published versions so unchanged charts and retries
 cannot block a new chart release. Release jobs are serialized. Validate this
