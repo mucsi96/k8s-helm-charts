@@ -1,0 +1,29 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Release.Name }}-oauth
+  namespace: {{ .Release.Namespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.gateway.name }}
+      namespace: {{ .Values.gateway.namespace }}
+      sectionName: {{ .Values.gateway.sectionName }}
+  hostnames:
+    - {{ .Values.global.forwardAuth.host | quote }}
+  rules:
+    - matches:
+      {{- range list "start" "callback" "sign_in" "sign_out" "userinfo" }}
+        - path:
+            type: Exact
+            value: /oauth2/{{ . }}
+      {{- end }}
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Cache-Control
+                value: no-store
+            remove: [Authorization, X-Auth-Request-Access-Token]
+      backendRefs:
+        - name: {{ include "forwardauth.proxyName" . }}
+          port: 80

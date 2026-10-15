@@ -1,4 +1,5 @@
 appPort: 8080
+routeFilters: []
 managementPort: 8082
 basePath: /
 env: {}

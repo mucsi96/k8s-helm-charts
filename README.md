@@ -12,8 +12,10 @@ This repository contains reusable Helm charts for deploying various types of app
 - [node_app](#node_app) - Node.js backend applications
 - [spring_app](#spring_app) - Spring Boot Java applications
 - [go_app](#go_app) - Go HTTP applications with a management listener
+- [rust_app](#rust_app) - Distroless Rust HTTP applications with optional workload identity
 - [postgres_db](#postgres_db) - PostgreSQL database
 - [redis](#redis) - Redis session store for oauth2-proxy
+- [oauth2-proxy-forwardauth](charts/oauth2_proxy_forwardauth/README.md) - Per-app OIDC sessions and Traefik ForwardAuth
 
 ---
 
@@ -214,6 +216,32 @@ Spring-to-Go migration guide. The existing release workflow publishes it as
 
 ---
 
+## rust_app
+
+Deploys native Rust HTTP services with `LISTEN_ADDR`, configurable `/healthz`
+probes, standard Gateway API `routeFilters`, optional Azure Workload Identity,
+existing service-account/configuration reuse and persistent storage. No shell
+or JVM is required in the runtime image.
+
+```yaml
+image: ghcr.io/example/rust-api:1
+host: rust.example.com
+env:
+  RUST_LOG: info
+routeFilters:
+  - type: ResponseHeaderModifier
+    responseHeaderModifier:
+      set:
+        - name: Cache-Control
+          value: no-store
+```
+
+See [Rust App Helm Chart](charts/rust_app/README.md) for identity, configuration,
+PVC, filter and Observatory-style adoption examples. The release workflow
+publishes `mucsi96/rust-app` using the `rust-app` version prefix.
+
+---
+
 ## postgres_db
 
 Deploys a PostgreSQL database with persistent storage.
@@ -348,6 +376,9 @@ Charts include:
 - Kubernetes Gateway API `HTTPRoute` resources
 - Support for path-based and host-based routing
 - Attaches to the shared `traefik` Gateway (`websecure` listener)
+- App charts accept standard Gateway API `routeFilters: []`; the default empty
+  list preserves existing routing. Header/cache policies use standard filters;
+  only external authentication requires a controller-specific ExtensionRef.
 
 ### Resource Management
 

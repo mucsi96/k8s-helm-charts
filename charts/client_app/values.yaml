@@ -1,4 +1,5 @@
 appPort: 8000
+routeFilters: []
 resources:
   requests:
     cpu: 10m

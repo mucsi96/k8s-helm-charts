@@ -8,4 +8,5 @@ helm template demo-go-app "$PROJECT_DIR/charts/go_app" \
     --set host=api.example.com \
     --set basePath=/api \
     --set serviceAccountName=demo-go-app \
-    --set clientId=12345678-1234-1234-1234-123456789abc
+    --set clientId=12345678-1234-1234-1234-123456789abc \
+    --set-json 'routeFilters=[{"type":"ResponseHeaderModifier","responseHeaderModifier":{"set":[{"name":"Cache-Control","value":"no-store"}]}}]'

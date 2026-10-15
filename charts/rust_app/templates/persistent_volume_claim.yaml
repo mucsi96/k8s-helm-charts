@@ -1,0 +1,19 @@
+{{- range .Values.persistentVolumeClaims }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    app: {{ $.Release.Name }}
+spec:
+  accessModes: [{{ .accessMode }}]
+  storageClassName: {{ .storageClassName | quote }}
+  {{- with .volumeName }}
+  volumeName: {{ . | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .storage | quote }}
+{{- end }}

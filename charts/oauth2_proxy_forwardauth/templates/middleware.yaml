@@ -1,0 +1,23 @@
+{{- $auth := .Values.global.forwardAuth -}}
+{{- $proxy := include "forwardauth.proxyName" . -}}
+{{- $cookie := include "forwardauth.cookieName" . -}}
+{{- range $mode := list "document" "api" }}
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ $.Release.Name }}-{{ $mode }}
+  namespace: {{ $.Release.Namespace }}
+spec:
+  forwardAuth:
+    address: {{ printf "http://%s.%s.svc.cluster.local:80%s" $proxy $.Release.Namespace (ternary "/oauth2/auth" "/" (eq $mode "api")) | quote }}
+    trustForwardHeader: false
+    forwardBody: false
+    preserveLocationHeader: true
+    maxResponseBodySize: 65536
+    authRequestHeaders: [Cookie, Accept, Origin, X-Requested-With, Sec-WebSocket-Key]
+    authResponseHeaders: {{ if eq $auth.mode "email-header" }}[X-Auth-Request-Email]{{ else if and (eq $auth.mode "api-token") (eq $mode "api") }}[Authorization]{{ else }}[]{{ end }}
+    addAuthCookiesToResponse:
+      - {{ $cookie }}
+      - {{ printf "%s_csrf" $cookie }}
+{{- end }}

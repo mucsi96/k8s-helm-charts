@@ -1,4 +1,5 @@
 appPort: 8080
+routeFilters: []
 persistentVolumeClaims: []
 resources:
   requests:
