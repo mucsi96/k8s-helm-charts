@@ -5,6 +5,10 @@ on:
     branches:
       - main
 
+concurrency:
+  group: helm-chart-release
+  cancel-in-progress: false
+
 jobs:
   release:
     permissions:
@@ -15,6 +19,16 @@ jobs:
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
+
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Prepare published chart versions for the shared version action
+        run: |
+          python3 -m pip install PyYAML
+          python3 scripts/prepare_chart_version_tags.py
 
       - name: Configure Git
         run: |
@@ -99,20 +113,17 @@ jobs:
       - name: Install Helm
         uses: azure/setup-helm@v5
 
-      - name: Install Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: '3.x'
-
       - name: Build dependencies and validate application charts
         run: |
           helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
           helm dependency build charts/oauth2_proxy_forwardauth
-          python3 -m pip install PyYAML
+          python3 scripts/check_chart_version_tags.py
           python3 scripts/check_forwardauth.py
           python3 scripts/check_rust_app.py
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0
+        with:
+          skip_existing: true
         env:
           CR_TOKEN: "${{ secrets.GITHUB_TOKEN }}"

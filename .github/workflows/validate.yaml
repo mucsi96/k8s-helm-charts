@@ -23,6 +23,7 @@ jobs:
           helm dependency build charts/oauth2_proxy_forwardauth
       - name: Validate Rust runtime and standard routing contracts
         run: |
+          python3 scripts/check_chart_version_tags.py
           helm lint charts/rust_app --set image=example/rust-app:1 --set host=rust.example.com
           python3 scripts/check_rust_app.py
           python3 scripts/check_forwardauth.py
