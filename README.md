@@ -393,15 +393,18 @@ Charts include:
 ### Chart release versioning
 
 Charts publish major-only SemVer tags (`<chart>-N.0.0`); older releases used
-integer tags (`<chart>-N`). The shared `get-next-version` action accepts integer
-tags. Before invoking it, the release job adds runner-local integer aliases for
-published `N.0.0` tags, pointing at the exact published commits. Aliases are never
-pushed and existing tags are never overwritten. This preserves the shared
-action's source-change and global highest-version calculation across both eras.
+integer tags (`<chart>-N`). The shared `get-next-version` action is configured
+with `suffix: '.0.0'`, recognizing both formats directly. It owns source-change
+and highest-version selection; no runner-local tag aliases are needed.
+
+`set_chart_version.py` validates the returned counter/tag against the chart name
+before writing Helm metadata. An old action that ignores the suffix input fails
+before publication instead of silently attempting duplicate versions. The
+suffix-aware shared action must be available on its `main` ref first.
 
 Chart-releaser skips already-published versions so unchanged charts and retries
 cannot block a new chart release. Release jobs are serialized. Validate this
-boundary with `python3 scripts/check_chart_version_tags.py`.
+boundary with `python3 scripts/check_chart_versions.py`.
 
 ### Installing a Chart
 
