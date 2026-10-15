@@ -98,6 +98,7 @@ jobs:
 
       - name: Build ForwardAuth dependencies and validate routing
         run: |
+          helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
           helm dependency build charts/oauth2_proxy_forwardauth
           python3 -m pip install PyYAML
           python3 scripts/check_forwardauth.py

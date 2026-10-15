@@ -17,15 +17,9 @@ spec:
         - path:
             type: PathPrefix
             value: {{ .Values.basePath | default "/" | quote }}
-      {{- with .Values.routeMiddlewares }}
+      {{- with .Values.routeFilters }}
       filters:
-        {{- range . }}
-        - type: ExtensionRef
-          extensionRef:
-            group: traefik.io
-            kind: Middleware
-            name: {{ . | quote }}
-        {{- end }}
+        {{- toYaml . | nindent 8 }}
       {{- end }}
       backendRefs:
         - name: {{ .Release.Name }}

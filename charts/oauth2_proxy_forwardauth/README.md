@@ -1,7 +1,8 @@
 # oauth2-proxy-forwardauth
 
-One stock oauth2-proxy per application, with Redis sessions and same-namespace
-Traefik Middleware chains. The upstream chart is a pinned dependency, not a fork.
+One stock oauth2-proxy per application, with Redis sessions, standard Gateway API
+HTTPRoutes/header filters and two same-namespace ForwardAuth extensions. The
+upstream chart is a pinned dependency, not a fork.
 Requires Gateway API and Traefik's Kubernetes CRD provider.
 
 ```yaml
@@ -34,27 +35,32 @@ uses the actual `email` claim for Grafana. Neither email nor UPN decides API rol
 The cookie defaults to `__Host-<release>`, Secure, HttpOnly and SameSite=Lax.
 Default refresh/expiry are `5m`/`168h`; refresh must be below access-token lifetime.
 
-Install the auth release through platform Terraform, then attach its chains to
-application charts using `routeMiddlewares`:
+Install the auth release through platform Terraform. It publishes non-secret JSON
+HTTPRoute filter lists in `<auth-release>-route-filters`, under `document` and
+`api`. Application deploy jobs read the corresponding list and pass it to the
+app chart's generic `routeFilters` value:
 
-```yaml
-# client-app values
-routeMiddlewares: [hello-oauth2-proxy-document]
-# spring-app / go-app / node-app values
-# routeMiddlewares: [hello-oauth2-proxy-api]
+```bash
+API_FILTERS=$(kubectl -n hello get configmap hello-oauth2-proxy-route-filters -o jsonpath='{.data.api}')
+helm upgrade hello-server mucsi96/spring-app --set-json routeFilters="$API_FILTERS" # plus app values
 ```
 
-The document chain starts login through a static-202 upstream. The API chain
-uses internal `/oauth2/auth` and returns 401/403 without an error-page redirect.
-Both strip caller identity headers. API tokens are forwarded only on the API
-chain; frontend static servers do not receive them. Preserve ordinary app cookies.
+Each policy contains, in order, `RequestHeaderModifier` (remove untrusted identity),
+one `ExtensionRef` (authenticate), and `ResponseHeaderModifier` (cache/header
+policy). OAuth and machine routes use standard response-header filters directly.
+The chart creates no custom Headers or Chain resources.
+
+The document authenticator starts login through a static-202 upstream. The API
+authenticator uses internal `/oauth2/auth` and returns 401/403 without an
+error-page redirect. API tokens are forwarded only on API routes; frontend
+static servers do not receive them. Preserve ordinary application cookies.
 
 Supported `mode` values:
 
 | Mode | API scope | Verified header |
 | --- | --- | --- |
 | `api-token` | Required, one `api://.../api-access` scope | `Authorization: Bearer <access_token>` on API routes |
-| `email-header` | Empty | `X-Auth-Request-Email` on both chains (Grafana) |
+| `email-header` | Empty | `X-Auth-Request-Email` on both authenticators (Grafana) |
 | `login-gate` | Empty | No identity credentials |
 
 Only exact public control endpoints are routed: `/oauth2/start`, `/callback`,
@@ -79,6 +85,7 @@ if enabling them, also permit the monitoring caller on the metrics port. Restric
 application ingress to its trusted callers, especially header-authenticated apps.
 
 ```bash
+helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
 helm dependency build charts/oauth2_proxy_forwardauth
 python3 scripts/check_forwardauth.py
 ```
@@ -87,3 +94,14 @@ python3 scripts/check_forwardauth.py
 configuration has one source of truth. Configure ordinary runtime resources,
 scheduling and Redis Secret references under `oauth2-proxy`. Do not replace its
 generated configuration or enable a second upstream public route.
+
+## Standard API support
+
+Gateway API v1.6.3 defines `ExternalAuth` in its experimental channel. Traefik
+v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and p07's v1.6.1
+standard-channel CRDs do not expose it. The two ForwardAuth Middleware CRDs are
+therefore the remaining implementation-specific part; routing, header policies,
+Services, ConfigMaps and NetworkPolicies use standard APIs.
+
+- [GEP-1494 status](https://gateway-api.sigs.k8s.io/geps/gep-1494/)
+- [Traefik v3.7.14 filter switch](https://github.com/traefik/traefik/blob/v3.7.14/pkg/provider/kubernetes/gateway/httproute.go#L406-L479)

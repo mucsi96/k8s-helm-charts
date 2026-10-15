@@ -19,11 +19,12 @@ spec:
             value: {{ .path | quote }}
           method: {{ .method }}
       filters:
-        - type: ExtensionRef
-          extensionRef:
-            group: traefik.io
-            kind: Middleware
-            name: {{ $.Release.Name }}-no-store
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Cache-Control
+                value: no-store
+            remove: [Authorization, X-Auth-Request-Access-Token]
       backendRefs:
         - name: {{ .service | quote }}
           port: {{ .port }}

@@ -6,6 +6,14 @@
 {{- include "oauth2-proxy.fullname" (index .Subcharts "oauth2-proxy") -}}
 {{- end -}}
 
+{{- define "forwardauth.routeFilters" -}}
+{{- $request := dict "type" "RequestHeaderModifier" "requestHeaderModifier" (dict "remove" (list "Authorization" "X-Auth-Request-Email" "X-Auth-Request-Access-Token" "X-Auth-Request-User" "X-Forwarded-User" "X-Forwarded-Email")) -}}
+{{- $auth := dict "type" "ExtensionRef" "extensionRef" (dict "group" "traefik.io" "kind" "Middleware" "name" (printf "%s-%s" .root.Release.Name .target)) -}}
+{{- $cacheControl := ternary "no-store" "private, no-cache" (eq .target "api") -}}
+{{- $response := dict "type" "ResponseHeaderModifier" "responseHeaderModifier" (dict "set" (list (dict "name" "Cache-Control" "value" $cacheControl)) "remove" (list "Authorization" "X-Auth-Request-Access-Token")) -}}
+{{- list $request $auth $response | toJson -}}
+{{- end -}}
+
 {{- define "forwardauth.legacyConfig" -}}
 {{- $auth := .Values.global.forwardAuth -}}
 email_domains = ["*"]

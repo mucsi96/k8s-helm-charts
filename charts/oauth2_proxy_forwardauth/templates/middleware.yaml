@@ -6,7 +6,7 @@
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:
-  name: {{ $.Release.Name }}-{{ $mode }}-auth
+  name: {{ $.Release.Name }}-{{ $mode }}
   namespace: {{ $.Release.Namespace }}
 spec:
   forwardAuth:
@@ -20,55 +20,4 @@ spec:
     addAuthCookiesToResponse:
       - {{ $cookie }}
       - {{ printf "%s_csrf" $cookie }}
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: {{ $.Release.Name }}-{{ $mode }}
-  namespace: {{ $.Release.Namespace }}
-spec:
-  chain:
-    middlewares:
-      - name: {{ $.Release.Name }}-strip-identity
-      - name: {{ $.Release.Name }}-{{ $mode }}-auth
-      - name: {{ $.Release.Name }}-{{ ternary "no-store" "private-cache" (eq $mode "api") }}
 {{- end }}
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: {{ .Release.Name }}-strip-identity
-  namespace: {{ .Release.Namespace }}
-spec:
-  headers:
-    customRequestHeaders:
-      Authorization: ""
-      X-Auth-Request-Email: ""
-      X-Auth-Request-Access-Token: ""
-      X-Auth-Request-User: ""
-      X-Forwarded-User: ""
-      X-Forwarded-Email: ""
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: {{ .Release.Name }}-no-store
-  namespace: {{ .Release.Namespace }}
-spec:
-  headers:
-    customResponseHeaders:
-      Cache-Control: no-store
-      Authorization: ""
-      X-Auth-Request-Access-Token: ""
----
-apiVersion: traefik.io/v1alpha1
-kind: Middleware
-metadata:
-  name: {{ .Release.Name }}-private-cache
-  namespace: {{ .Release.Namespace }}
-spec:
-  headers:
-    customResponseHeaders:
-      Cache-Control: private, no-cache
-      Authorization: ""
-      X-Auth-Request-Access-Token: ""

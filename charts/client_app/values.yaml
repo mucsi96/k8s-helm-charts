@@ -1,5 +1,5 @@
 appPort: 8000
-routeMiddlewares: []
+routeFilters: []
 resources:
   requests:
     cpu: 10m

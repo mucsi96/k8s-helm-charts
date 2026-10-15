@@ -62,14 +62,26 @@ for mode in ["api-token", "email-header", "login-gate"]:
     paths = route["spec"]["rules"][0]["matches"]
     assert all(match["path"]["type"] == "Exact" for match in paths)
     assert {match["path"]["value"] for match in paths} == {f"/oauth2/{path}" for path in ["start", "callback", "sign_in", "sign_out", "userinfo"]}
+    assert [item["type"] for item in route["spec"]["rules"][0]["filters"]] == ["ResponseHeaderModifier"]
+    custom = [item for item in resources if item["apiVersion"].startswith("traefik.io/")]
+    assert len(custom) == 2
+    assert all(set(item["spec"]) == {"forwardAuth"} for item in custom)
+    route_policies = resource(resources, "ConfigMap", "-route-filters")["data"]
     for target in ["document", "api"]:
-        middleware = resource(resources, "Middleware", f"-{target}-auth")["spec"]["forwardAuth"]
+        middleware = resource(resources, "Middleware", f"-{target}")["spec"]["forwardAuth"]
         assert middleware["forwardBody"] is False
         assert middleware["trustForwardHeader"] is False
         assert "Authorization" not in middleware["authRequestHeaders"]
         expected_headers = ["X-Auth-Request-Email"] if mode == "email-header" else ["Authorization"] if mode == "api-token" and target == "api" else []
         assert middleware["authResponseHeaders"] == expected_headers
         assert middleware["address"].endswith("/oauth2/auth" if target == "api" else ":80/")
+        policy = json.loads(route_policies[target])
+        assert [item["type"] for item in policy] == ["RequestHeaderModifier", "ExtensionRef", "ResponseHeaderModifier"]
+        assert "Authorization" in policy[0]["requestHeaderModifier"]["remove"]
+        assert "Cookie" not in policy[0]["requestHeaderModifier"]["remove"]
+        assert policy[1]["extensionRef"] == {"group": "traefik.io", "kind": "Middleware", "name": f"hello-oauth2-proxy-{target}"}
+        assert policy[2]["responseHeaderModifier"]["set"] == [{"name": "Cache-Control", "value": "no-store" if target == "api" else "private, no-cache"}]
+        assert "Authorization" in policy[2]["responseHeaderModifier"]["remove"]
     deployment = resource(resources, "Deployment", "oauth2-proxy")
     env = deployment["spec"]["template"]["spec"]["containers"][0]["env"]
     secret_env = {item["name"]: item.get("valueFrom", {}) for item in env}
@@ -96,7 +108,8 @@ values["machineRoutes"] = [{"path": "/api/integrations/recipes/import", "method"
 machine = resource(render("oauth2_proxy_forwardauth", values), "HTTPRoute", "-machine")["spec"]["rules"][0]
 assert machine["matches"] == [{"path": {"type": "Exact", "value": "/api/integrations/recipes/import"}, "method": "POST"}]
 assert machine["backendRefs"] == [{"name": "cooking-server", "port": 8080}]
-assert [item["extensionRef"]["name"] for item in machine["filters"]] == ["hello-oauth2-proxy-no-store"]
+assert [item["type"] for item in machine["filters"]] == ["ResponseHeaderModifier"]
+assert machine["filters"][0]["responseHeaderModifier"]["set"] == [{"name": "Cache-Control", "value": "no-store"}]
 values["machineRoutes"][0]["method"] = ""
 render("oauth2_proxy_forwardauth", values, success=False)
 
@@ -104,12 +117,10 @@ for chart in ["client_app", "spring_app", "go_app", "node_app"]:
     values = {"image": "example/app:1", "host": "hello.example.test", "serviceAccountName": "hello-api", "clientId": "example-client"}
     before = resource(render(chart, values), "HTTPRoute", "-route")
     assert "filters" not in before["spec"]["rules"][0]
-    values["routeMiddlewares"] = ["hello-oauth2-proxy-api"]
+    values["routeFilters"] = json.loads(route_policies["api"])
     after = resource(render(chart, values), "HTTPRoute", "-route")
-    assert after["spec"]["rules"][0]["filters"] == [{"type": "ExtensionRef", "extensionRef": {
-        "group": "traefik.io", "kind": "Middleware", "name": "hello-oauth2-proxy-api",
-    }}]
+    assert after["spec"]["rules"][0]["filters"] == values["routeFilters"]
     del after["spec"]["rules"][0]["filters"]
     assert before == after
 
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 6, "compatibleAppCharts": 4, "exactMachineRoute": True}))
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 6, "compatibleAppCharts": 4, "exactMachineRoute": True, "customResourcesPerApp": 2}))

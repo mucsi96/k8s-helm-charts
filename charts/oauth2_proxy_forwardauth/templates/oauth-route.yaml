@@ -18,11 +18,12 @@ spec:
             value: /oauth2/{{ . }}
       {{- end }}
       filters:
-        - type: ExtensionRef
-          extensionRef:
-            group: traefik.io
-            kind: Middleware
-            name: {{ .Release.Name }}-no-store
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+              - name: Cache-Control
+                value: no-store
+            remove: [Authorization, X-Auth-Request-Access-Token]
       backendRefs:
         - name: {{ include "forwardauth.proxyName" . }}
           port: 80

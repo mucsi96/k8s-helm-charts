@@ -349,8 +349,9 @@ Charts include:
 - Kubernetes Gateway API `HTTPRoute` resources
 - Support for path-based and host-based routing
 - Attaches to the shared `traefik` Gateway (`websecure` listener)
-- App charts accept `routeMiddlewares: [name]` for same-namespace Traefik
-  Middleware ExtensionRefs. The default empty list preserves existing routing.
+- App charts accept standard Gateway API `routeFilters: []`; the default empty
+  list preserves existing routing. Header/cache policies use standard filters;
+  only external authentication requires a controller-specific ExtensionRef.
 
 ### Resource Management
 
