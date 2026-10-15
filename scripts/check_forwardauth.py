@@ -87,7 +87,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     secret_env = {item["name"]: item.get("valueFrom", {}) for item in env}
     assert secret_env["OAUTH2_PROXY_CLIENT_SECRET"]["secretKeyRef"]["name"] == "hello-oidc"
     assert secret_env["OAUTH2_PROXY_REDIS_PASSWORD"]["secretKeyRef"]["name"] == "hello-redis"
-    resource(resources, "NetworkPolicy", "oauth2-proxy")
+    assert not any(item["kind"] == "NetworkPolicy" for item in resources)
 
 for path, value in [
     (("global", "forwardAuth", "apiScope"), ""),

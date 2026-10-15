@@ -36,19 +36,6 @@ oauth2-proxy:
       passwordKey: redis-password
       standalone:
         connectionUrl: ""
-  networkPolicy:
-    create: true
-    ingress:
-      - from:
-          - namespaceSelector:
-              matchLabels:
-                kubernetes.io/metadata.name: kube-system
-            podSelector:
-              matchLabels:
-                app.kubernetes.io/name: traefik
-        ports:
-          - protocol: TCP
-            port: 4180
   resources:
     requests:
       cpu: 5m
