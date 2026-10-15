@@ -1,0 +1,57 @@
+global:
+  forwardAuth:
+    host: ""
+    issuerURL: ""
+    credentialsSecret: ""
+    mode: api-token
+    apiScope: ""
+    cookieName: ""
+    cookieRefresh: 5m
+    cookieExpire: 168h
+    trustedProxyCIDRs: []
+gateway:
+  name: traefik
+  namespace: traefik
+  sectionName: websecure
+machineRoutes: []
+oauth2-proxy:
+  config:
+    existingSecret: '{{ .Values.global.forwardAuth.credentialsSecret }}'
+    configFile: '{{ include "forwardauth.legacyConfig" . }}'
+  alphaConfig:
+    enabled: true
+    configFile: '{{ include "forwardauth.alphaConfig" . }}'
+  ingress:
+    enabled: false
+  gatewayApi:
+    enabled: false
+  serviceAccount:
+    automountServiceAccountToken: false
+  metrics:
+    enabled: false
+  sessionStorage:
+    type: redis
+    redis:
+      existingSecret: ""
+      passwordKey: redis-password
+      standalone:
+        connectionUrl: ""
+  networkPolicy:
+    create: true
+    ingress:
+      - from:
+          - namespaceSelector:
+              matchLabels:
+                kubernetes.io/metadata.name: kube-system
+            podSelector:
+              matchLabels:
+                app.kubernetes.io/name: traefik
+        ports:
+          - protocol: TCP
+            port: 4180
+  resources:
+    requests:
+      cpu: 5m
+      memory: 16Mi
+    limits:
+      memory: 64Mi

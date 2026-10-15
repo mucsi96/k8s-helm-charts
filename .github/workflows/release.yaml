@@ -63,6 +63,13 @@ jobs:
           prefix: redis
           src: charts/redis
 
+      - name: Get next version for oauth2-proxy-forwardauth
+        id: forwardauth-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: oauth2-proxy-forwardauth
+          src: charts/oauth2_proxy_forwardauth
+
       - name: Update chart versions
         run: |
           update_version() {
@@ -79,9 +86,21 @@ jobs:
           update_version charts/node_app "${{ steps.node-app-version.outputs.version }}"
           update_version charts/postgres_db "${{ steps.postgres-db-version.outputs.version }}"
           update_version charts/redis "${{ steps.redis-version.outputs.version }}"
+          update_version charts/oauth2_proxy_forwardauth "${{ steps.forwardauth-version.outputs.version }}"
 
       - name: Install Helm
         uses: azure/setup-helm@v5
+
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Build ForwardAuth dependencies and validate routing
+        run: |
+          helm dependency build charts/oauth2_proxy_forwardauth
+          python3 -m pip install PyYAML
+          python3 scripts/check_forwardauth.py
 
       - name: Run chart-releaser
         uses: helm/chart-releaser-action@v1.7.0

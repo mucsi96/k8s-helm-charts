@@ -17,6 +17,16 @@ spec:
         - path:
             type: PathPrefix
             value: {{ .Values.basePath | default "/" | quote }}
+      {{- with .Values.routeMiddlewares }}
+      filters:
+        {{- range . }}
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: {{ . | quote }}
+        {{- end }}
+      {{- end }}
       backendRefs:
         - name: {{ .Release.Name }}
           port: {{ required "appPort value is required!" .Values.appPort }}

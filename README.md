@@ -14,6 +14,7 @@ This repository contains reusable Helm charts for deploying various types of app
 - [go_app](#go_app) - Go HTTP applications with a management listener
 - [postgres_db](#postgres_db) - PostgreSQL database
 - [redis](#redis) - Redis session store for oauth2-proxy
+- [oauth2-proxy-forwardauth](charts/oauth2_proxy_forwardauth/README.md) - Per-app OIDC sessions and Traefik ForwardAuth
 
 ---
 
@@ -348,6 +349,8 @@ Charts include:
 - Kubernetes Gateway API `HTTPRoute` resources
 - Support for path-based and host-based routing
 - Attaches to the shared `traefik` Gateway (`websecure` listener)
+- App charts accept `routeMiddlewares: [name]` for same-namespace Traefik
+  Middleware ExtensionRefs. The default empty list preserves existing routing.
 
 ### Resource Management
 

@@ -1,0 +1,89 @@
+# oauth2-proxy-forwardauth
+
+One stock oauth2-proxy per application, with Redis sessions and same-namespace
+Traefik Middleware chains. The upstream chart is a pinned dependency, not a fork.
+Requires Gateway API and Traefik's Kubernetes CRD provider.
+
+```yaml
+global:
+  forwardAuth:
+    host: hello.example.test
+    issuerURL: https://login.microsoftonline.com/TENANT_ID/v2.0
+    credentialsSecret: hello-oidc
+    mode: api-token
+    apiScope: api://HELLO_API_CLIENT_ID/api-access
+    trustedProxyCIDRs: [10.42.0.0/16]
+oauth2-proxy:
+  sessionStorage:
+    redis:
+      existingSecret: hello-redis
+      standalone:
+        connectionUrl: redis://redis.redis.svc.cluster.local:6379
+```
+
+The credentials Secret has `client-id`, `client-secret`, and `cookie-secret`.
+The Redis Secret has `redis-password` (override upstream `passwordKey` if needed).
+Use a distinct, persisted cookie secret for every application. Secrets and the
+confidential Entra Web registration are provisioned outside this chart. Web app
+assignment must be required; the proxy deliberately permits any authenticated
+email and relies on Entra assignment and downstream API roles for authorization.
+API/login-gate modes use Entra's `preferred_username` for the proxy's required
+email slot, with `sub` as user ID; this avoids a Graph user-info lookup using an
+API access token when the optional email claim is absent. Email-header mode
+uses the actual `email` claim for Grafana. Neither email nor UPN decides API roles.
+The cookie defaults to `__Host-<release>`, Secure, HttpOnly and SameSite=Lax.
+Default refresh/expiry are `5m`/`168h`; refresh must be below access-token lifetime.
+
+Install the auth release through platform Terraform, then attach its chains to
+application charts using `routeMiddlewares`:
+
+```yaml
+# client-app values
+routeMiddlewares: [hello-oauth2-proxy-document]
+# spring-app / go-app / node-app values
+# routeMiddlewares: [hello-oauth2-proxy-api]
+```
+
+The document chain starts login through a static-202 upstream. The API chain
+uses internal `/oauth2/auth` and returns 401/403 without an error-page redirect.
+Both strip caller identity headers. API tokens are forwarded only on the API
+chain; frontend static servers do not receive them. Preserve ordinary app cookies.
+
+Supported `mode` values:
+
+| Mode | API scope | Verified header |
+| --- | --- | --- |
+| `api-token` | Required, one `api://.../api-access` scope | `Authorization: Bearer <access_token>` on API routes |
+| `email-header` | Empty | `X-Auth-Request-Email` on both chains (Grafana) |
+| `login-gate` | Empty | No identity credentials |
+
+Only exact public control endpoints are routed: `/oauth2/start`, `/callback`,
+`/sign_in`, `/sign_out`, `/userinfo` under the `/oauth2` prefix. Never expose
+`/oauth2/auth` or the static-202 root directly: they can carry bearer credentials
+in response headers. `/userinfo` is token-free; `/sign_out` is local app logout,
+not Entra-wide logout. A protected document can immediately restart Entra SSO.
+
+**Application mutations require Origin or CSRF-token protection.** OAuth callback
+CSRF validation does not protect application POST/PUT/DELETE requests. SameSite
+and CORS do not isolate sibling apps. Preserve separately authenticated machine
+endpoints using explicit platform routes and keep backend JWT/role validation.
+
+Optional `machineRoutes` entries contain `path`, `method`, `service` and `port`.
+They create exact host/path/method routes directly to that same-namespace API,
+preserving its caller bearer token. Use only for independently authenticated
+machine endpoints; their backend must reject a browser cookie alone.
+
+The dependency's default NetworkPolicy admits only Traefik in `kube-system` on
+4180. Configure selectors for your installation. Metrics are disabled by default;
+if enabling them, also permit the monitoring caller on the metrics port. Restrict
+application ingress to its trusted callers, especially header-authenticated apps.
+
+```bash
+helm dependency build charts/oauth2_proxy_forwardauth
+python3 scripts/check_forwardauth.py
+```
+
+`global.forwardAuth` is shared with the dependency so generated legacy/alpha
+configuration has one source of truth. Configure ordinary runtime resources,
+scheduling and Redis Secret references under `oauth2-proxy`. Do not replace its
+generated configuration or enable a second upstream public route.
