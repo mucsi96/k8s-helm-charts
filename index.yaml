@@ -177,6 +177,20 @@ entries:
   oauth2-proxy-forwardauth:
   - apiVersion: v2
     appVersion: 7.15.2
+    created: "2026-10-16T10:26:52.203642258Z"
+    dependencies:
+    - name: oauth2-proxy
+      repository: https://oauth2-proxy.github.io/manifests
+      version: 10.4.3
+    description: Stock oauth2-proxy sessions with Traefik Gateway API ForwardAuth
+    digest: f2056f1a7c77c30f1056255d286339fa5196c8190bcf2d2ad8b404ed919a88c0
+    name: oauth2-proxy-forwardauth
+    type: application
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/oauth2-proxy-forwardauth-3.0.0/oauth2-proxy-forwardauth-3.0.0.tgz
+    version: 3.0.0
+  - apiVersion: v2
+    appVersion: 7.15.2
     created: "2026-10-15T17:03:17.301957196Z"
     dependencies:
     - name: oauth2-proxy
@@ -343,4 +357,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
     version: 26.0.0
-generated: "2026-10-15T17:03:18.133623284Z"
+generated: "2026-10-16T10:26:53.062085081Z"
