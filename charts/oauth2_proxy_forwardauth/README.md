@@ -54,7 +54,7 @@ helm upgrade hello-server mucsi96/spring-app --set-json routeFilters="$API_FILTE
 
 Each policy contains, in order, `RequestHeaderModifier` (remove untrusted identity),
 one `ExtensionRef` (authenticate), and `ResponseHeaderModifier` (cache/header
-policy). OAuth and machine routes use standard response-header filters directly.
+policy). OAuth and excluded routes use standard response-header filters directly.
 The chart creates no custom Headers or Chain resources.
 
 For protected service UIs, the document authenticator starts login through a
@@ -100,38 +100,40 @@ CSRF validation does not protect application POST/PUT/DELETE requests. SameSite
 and CORS do not isolate sibling apps. Preserve separately authenticated machine
 endpoints using explicit platform routes and keep backend JWT/role validation.
 
-Optional `machineRoutes` entries contain `path`, `method`, `service` and `port`.
-They create exact host/path/method routes directly to that same-namespace API,
-preserving its caller bearer token. Use only for independently authenticated
-machine endpoints; their backend must reject a browser cookie alone.
+### ForwardAuth exclusions
 
-### Public bootstrap GET routes
-
-`publicApiRoutes` renders an optional `<auth-release>-public-api` HTTPRoute for
-bootstrap handlers that must be reachable before a session exists. Terraform
-supplies these per-service values alongside the existing hostname and Gateway
-reference; the chart owns the Kubernetes routing resource.
+`excludeFromForwardAuth` is the single list for exact routes that bypass the
+browser-session ForwardAuth check. Entries require `path`, `method`, `service`
+and `port`. The chart renders one `<auth-release>-excluded-routes` HTTPRoute,
+using the configured hostname/Gateway and release namespace. For Cooking:
 
 ```yaml
-publicApiRoutes:
+excludeFromForwardAuth:
   - path: /api/environment
-    service: hello-server
+    method: GET
+    service: cooking-server
+    port: 8080
+  - path: /api/integrations/recipes/import
+    method: POST
+    service: cooking-server
     port: 8080
 ```
 
-Each entry matches an exact `/api/` path and only `GET`, forwarding to a Service
-in the auth release's namespace without ForwardAuth. Responses use `no-store`
-and strip credential-bearing response headers. This lets the handler return
-configuration or a server-driven bootstrap redirect. Other API paths/methods
-continue through their existing protected routes.
+Exclusion means only that the route skips ForwardAuth. Each handler enforces
+its own access contract: the bootstrap handler selects configuration or a login
+redirect, while the machine import requires its caller's bearer token and role.
+Caller Authorization headers and cookies are preserved. Responses use `no-store`
+and strip credential-bearing response headers. Other paths/methods continue
+through their existing routes; no blanket path-prefix bypass is created.
 
-The list defaults to empty and creates no resource until configured. The schema
-requires a path, Service and integer port; custom methods are not accepted.
-The chart does not hardcode `/api/environment` or any application backend.
+The list defaults to empty and creates no resource until configured. Paths are
+root-relative and exact, with no query/fragment/whitespace; `/oauth2` is reserved
+for the stock proxy handlers. Methods must be explicit supported HTTP methods,
+and ports must be integers from 1 to 65535. No app path or backend is hardcoded.
 
-This follows the Terraform module's existing `public_api_routes` contract and
-resource name. The companion module change must pass the list to Helm and remove
-its `kubectl_manifest.public_api` resource before module publication.
+The companion Terraform module supplies this single list as Helm values.
+The chart owns the HTTPRoute; the module must remove its separate routing
+manifest before module publication.
 
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
