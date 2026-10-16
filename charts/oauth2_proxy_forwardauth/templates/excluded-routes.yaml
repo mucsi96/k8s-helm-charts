@@ -1,4 +1,4 @@
-{{- if .Values.excludeFromForwardAuth }}
+{{- if .Values.excludedRoutes }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -12,7 +12,7 @@ spec:
   hostnames:
     - {{ .Values.global.forwardAuth.host | quote }}
   rules:
-    {{- range .Values.excludeFromForwardAuth }}
+    {{- range .Values.excludedRoutes }}
     - matches:
         - path:
             type: Exact

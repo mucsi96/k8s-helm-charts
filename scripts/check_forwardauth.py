@@ -111,7 +111,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     values = copy.deepcopy(VALUES)
     values["global"]["forwardAuth"].update(host="bootstrap.example.test", mode=mode, apiScope="api://hello-api/api-access" if mode == "api-token" else "")
     values["gateway"] = {"name": "shared-gateway", "namespace": "ingress", "sectionName": "https"}
-    values["excludeFromForwardAuth"] = [
+    values["excludedRoutes"] = [
         {"path": "/api/environment", "method": "GET", "service": "cooking-server", "port": 8080},
         {"path": "/api/integrations/recipes/import", "method": "POST", "service": "cooking-server", "port": 8080},
         {"path": "/healthz", "method": "GET", "service": "other-service", "port": 9090},
@@ -123,7 +123,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     assert excluded["spec"]["parentRefs"] == [{"name": "shared-gateway", "namespace": "ingress", "sectionName": "https"}]
     assert len(excluded["spec"]["rules"]) == 3
     assert len([item for item in resources if item["kind"] == "HTTPRoute" and not item["metadata"]["name"].endswith("-oauth")]) == 1
-    for rule, supplied in zip(excluded["spec"]["rules"], values["excludeFromForwardAuth"]):
+    for rule, supplied in zip(excluded["spec"]["rules"], values["excludedRoutes"]):
         assert rule["matches"] == [{"path": {"type": "Exact", "value": supplied["path"]}, "method": supplied["method"]}]
         assert rule["backendRefs"] == [{"name": supplied["service"], "port": supplied["port"]}]
         assert rule["filters"] == [{"type": "ResponseHeaderModifier", "responseHeaderModifier": {
@@ -133,13 +133,13 @@ for mode in ["api-token", "email-header", "login-gate"]:
 
 for field, invalid in [("path", "/oauth2/auth"), ("path", "api/environment"), ("path", "/api/environment?token=bad"), ("service", ""), ("port", 0), ("method", "*")]:
     values = copy.deepcopy(VALUES)
-    values["excludeFromForwardAuth"] = [{"path": "/api/environment", "method": "GET", "service": "hello-server", "port": 8080, field: invalid}]
+    values["excludedRoutes"] = [{"path": "/api/environment", "method": "GET", "service": "hello-server", "port": 8080, field: invalid}]
     render("oauth2_proxy_forwardauth", values, success=False)
 for missing in ["service", "method"]:
     values = copy.deepcopy(VALUES)
     route = {"path": "/api/environment", "method": "GET", "service": "hello-server", "port": 8080}
     del route[missing]
-    values["excludeFromForwardAuth"] = [route]
+    values["excludedRoutes"] = [route]
     render("oauth2_proxy_forwardauth", values, success=False)
 
 for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:

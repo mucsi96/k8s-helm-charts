@@ -102,13 +102,13 @@ endpoints using explicit platform routes and keep backend JWT/role validation.
 
 ### ForwardAuth exclusions
 
-`excludeFromForwardAuth` is the single list for exact routes that bypass the
+`excludedRoutes` is the single list for exact routes that bypass the
 browser-session ForwardAuth check. Entries require `path`, `method`, `service`
 and `port`. The chart renders one `<auth-release>-excluded-routes` HTTPRoute,
 using the configured hostname/Gateway and release namespace. For Cooking:
 
 ```yaml
-excludeFromForwardAuth:
+excludedRoutes:
   - path: /api/environment
     method: GET
     service: cooking-server
