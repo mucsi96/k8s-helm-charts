@@ -54,7 +54,7 @@ helm upgrade hello-server mucsi96/spring-app --set-json routeFilters="$API_FILTE
 
 Each policy contains, in order, `RequestHeaderModifier` (remove untrusted identity),
 one `ExtensionRef` (authenticate), and `ResponseHeaderModifier` (cache/header
-policy). OAuth and machine routes use standard response-header filters directly.
+policy). OAuth and excluded routes use standard response-header filters directly.
 The chart creates no custom Headers or Chain resources.
 
 For protected service UIs, the document authenticator starts login through a
@@ -100,10 +100,40 @@ CSRF validation does not protect application POST/PUT/DELETE requests. SameSite
 and CORS do not isolate sibling apps. Preserve separately authenticated machine
 endpoints using explicit platform routes and keep backend JWT/role validation.
 
-Optional `machineRoutes` entries contain `path`, `method`, `service` and `port`.
-They create exact host/path/method routes directly to that same-namespace API,
-preserving its caller bearer token. Use only for independently authenticated
-machine endpoints; their backend must reject a browser cookie alone.
+### ForwardAuth exclusions
+
+`excludedRoutes` is the single list for exact routes that bypass the
+browser-session ForwardAuth check. Entries require `path`, `method`, `service`
+and `port`. The chart renders one `<auth-release>-excluded-routes` HTTPRoute,
+using the configured hostname/Gateway and release namespace. For Cooking:
+
+```yaml
+excludedRoutes:
+  - path: /api/environment
+    method: GET
+    service: cooking-server
+    port: 8080
+  - path: /api/integrations/recipes/import
+    method: POST
+    service: cooking-server
+    port: 8080
+```
+
+Exclusion means only that the route skips ForwardAuth. Each handler enforces
+its own access contract: the bootstrap handler selects configuration or a login
+redirect, while the machine import requires its caller's bearer token and role.
+Caller Authorization headers and cookies are preserved. Responses use `no-store`
+and strip credential-bearing response headers. Other paths/methods continue
+through their existing routes; no blanket path-prefix bypass is created.
+
+The list defaults to empty and creates no resource until configured. Paths are
+root-relative and exact, with no query/fragment/whitespace; `/oauth2` is reserved
+for the stock proxy handlers. Methods must be explicit supported HTTP methods,
+and ports must be integers from 1 to 65535. No app path or backend is hardcoded.
+
+The companion Terraform module supplies this single list as Helm values.
+The chart owns the HTTPRoute; the module must remove its separate routing
+manifest before module publication.
 
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests

@@ -13,7 +13,7 @@ gateway:
   name: traefik
   namespace: traefik
   sectionName: websecure
-machineRoutes: []
+excludedRoutes: []
 oauth2-proxy:
   config:
     existingSecret: '{{ .Values.global.forwardAuth.credentialsSecret }}'

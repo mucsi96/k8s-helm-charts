@@ -41,6 +41,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     values = copy.deepcopy(VALUES)
     values["global"]["forwardAuth"].update(mode=mode, apiScope="api://hello-api/api-access" if mode == "api-token" else "")
     resources = render("oauth2_proxy_forwardauth", values)
+    assert not any(item["kind"] == "HTTPRoute" and item["metadata"]["name"].endswith("-excluded-routes") for item in resources)
     alpha = yaml.safe_load(base64.b64decode(resource(resources, "Secret", "-alpha")["data"]["oauth2_proxy.yml"]))
     provider = alpha["providers"][0]
     assert provider["code_challenge_method"] == "S256"
@@ -106,15 +107,40 @@ for path, value in [
     target[path[-1]] = value
     render("oauth2_proxy_forwardauth", values, success=False)
 
-values = copy.deepcopy(VALUES)
-values["machineRoutes"] = [{"path": "/api/integrations/recipes/import", "method": "POST", "service": "cooking-server", "port": 8080}]
-machine = resource(render("oauth2_proxy_forwardauth", values), "HTTPRoute", "-machine")["spec"]["rules"][0]
-assert machine["matches"] == [{"path": {"type": "Exact", "value": "/api/integrations/recipes/import"}, "method": "POST"}]
-assert machine["backendRefs"] == [{"name": "cooking-server", "port": 8080}]
-assert [item["type"] for item in machine["filters"]] == ["ResponseHeaderModifier"]
-assert machine["filters"][0]["responseHeaderModifier"]["set"] == [{"name": "Cache-Control", "value": "no-store"}]
-values["machineRoutes"][0]["method"] = ""
-render("oauth2_proxy_forwardauth", values, success=False)
+for mode in ["api-token", "email-header", "login-gate"]:
+    values = copy.deepcopy(VALUES)
+    values["global"]["forwardAuth"].update(host="bootstrap.example.test", mode=mode, apiScope="api://hello-api/api-access" if mode == "api-token" else "")
+    values["gateway"] = {"name": "shared-gateway", "namespace": "ingress", "sectionName": "https"}
+    values["excludedRoutes"] = [
+        {"path": "/api/environment", "method": "GET", "service": "cooking-server", "port": 8080},
+        {"path": "/api/integrations/recipes/import", "method": "POST", "service": "cooking-server", "port": 8080},
+        {"path": "/healthz", "method": "GET", "service": "other-service", "port": 9090},
+    ]
+    resources = render("oauth2_proxy_forwardauth", values)
+    excluded = resource(resources, "HTTPRoute", "-excluded-routes")
+    assert excluded["metadata"] == {"name": "hello-oauth2-proxy-excluded-routes", "namespace": "hello"}
+    assert excluded["spec"]["hostnames"] == ["bootstrap.example.test"]
+    assert excluded["spec"]["parentRefs"] == [{"name": "shared-gateway", "namespace": "ingress", "sectionName": "https"}]
+    assert len(excluded["spec"]["rules"]) == 3
+    assert len([item for item in resources if item["kind"] == "HTTPRoute" and not item["metadata"]["name"].endswith("-oauth")]) == 1
+    for rule, supplied in zip(excluded["spec"]["rules"], values["excludedRoutes"]):
+        assert rule["matches"] == [{"path": {"type": "Exact", "value": supplied["path"]}, "method": supplied["method"]}]
+        assert rule["backendRefs"] == [{"name": supplied["service"], "port": supplied["port"]}]
+        assert rule["filters"] == [{"type": "ResponseHeaderModifier", "responseHeaderModifier": {
+            "set": [{"name": "Cache-Control", "value": "no-store"}],
+            "remove": ["Authorization", "X-Auth-Request-Access-Token"],
+        }}]
+
+for field, invalid in [("path", "/oauth2/auth"), ("path", "api/environment"), ("path", "/api/environment?token=bad"), ("service", ""), ("port", 0), ("method", "*")]:
+    values = copy.deepcopy(VALUES)
+    values["excludedRoutes"] = [{"path": "/api/environment", "method": "GET", "service": "hello-server", "port": 8080, field: invalid}]
+    render("oauth2_proxy_forwardauth", values, success=False)
+for missing in ["service", "method"]:
+    values = copy.deepcopy(VALUES)
+    route = {"path": "/api/environment", "method": "GET", "service": "hello-server", "port": 8080}
+    del route[missing]
+    values["excludedRoutes"] = [route]
+    render("oauth2_proxy_forwardauth", values, success=False)
 
 for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     values = {"image": "example/app:1", "host": "hello.example.test", "serviceAccountName": "hello-api", "clientId": "example-client"}
@@ -126,4 +152,4 @@ for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     del after["spec"]["rules"][0]["filters"]
     assert before == after
 
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 6, "compatibleAppCharts": 5, "exactMachineRoute": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 13, "compatibleAppCharts": 5, "exactForwardAuthExclusions": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))
