@@ -61,13 +61,16 @@ for mode in ["api-token", "email-header", "login-gate"]:
     route = resource(resources, "HTTPRoute", "-oauth")
     paths = route["spec"]["rules"][0]["matches"]
     assert all(match["path"]["type"] == "Exact" for match in paths)
-    assert {match["path"]["value"] for match in paths} == {f"/oauth2/{path}" for path in ["start", "callback", "sign_in", "sign_out", "userinfo"]}
+    public_paths = ["start", "callback", "sign_in", "sign_out", "userinfo"]
+    assert {match["path"]["value"] for match in paths} == {f"/oauth2/{path}" for path in public_paths}
     assert [item["type"] for item in route["spec"]["rules"][0]["filters"]] == ["ResponseHeaderModifier"]
     custom = [item for item in resources if item["apiVersion"].startswith("traefik.io/")]
-    assert len(custom) == 2
+    targets = ["api"] if mode == "api-token" else ["document", "api"]
+    assert len(custom) == len(targets)
     assert all(set(item["spec"]) == {"forwardAuth"} for item in custom)
     route_policies = resource(resources, "ConfigMap", "-route-filters")["data"]
-    for target in ["document", "api"]:
+    assert set(route_policies) == set(targets)
+    for target in targets:
         middleware = resource(resources, "Middleware", f"-{target}")["spec"]["forwardAuth"]
         assert middleware["forwardBody"] is False
         assert middleware["trustForwardHeader"] is False
@@ -123,4 +126,4 @@ for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     del after["spec"]["rules"][0]["filters"]
     assert before == after
 
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 6, "compatibleAppCharts": 5, "exactMachineRoute": True, "customResourcesPerApp": 2}))
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 6, "compatibleAppCharts": 5, "exactMachineRoute": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))

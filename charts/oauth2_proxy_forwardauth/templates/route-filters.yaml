@@ -4,5 +4,7 @@ metadata:
   name: {{ .Release.Name }}-route-filters
   namespace: {{ .Release.Namespace }}
 data:
+{{- if ne .Values.global.forwardAuth.mode "api-token" }}
   document: {{ include "forwardauth.routeFilters" (dict "root" . "target" "document") | quote }}
+{{- end }}
   api: {{ include "forwardauth.routeFilters" (dict "root" . "target" "api") | quote }}

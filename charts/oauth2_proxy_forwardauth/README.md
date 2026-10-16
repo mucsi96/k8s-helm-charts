@@ -1,8 +1,8 @@
 # oauth2-proxy-forwardauth
 
-One stock oauth2-proxy per application, with Redis sessions, standard Gateway API
-HTTPRoutes/header filters and two same-namespace ForwardAuth extensions. The
-upstream chart is a pinned dependency, not a fork.
+One stock oauth2-proxy per application or protected service, with Redis sessions,
+standard Gateway API HTTPRoutes/header filters and same-namespace ForwardAuth
+extensions. The upstream chart is a pinned dependency, not a fork.
 Requires Gateway API and Traefik's Kubernetes CRD provider.
 
 ```yaml
@@ -36,12 +36,19 @@ The cookie defaults to `__Host-<release>`, Secure, HttpOnly and SameSite=Lax.
 Default refresh/expiry are `5m`/`168h`; refresh must be below access-token lifetime.
 
 Install the auth release through platform Terraform. It publishes non-secret JSON
-HTTPRoute filter lists in `<auth-release>-route-filters`, under `document` and
-`api`. Application deploy jobs read the corresponding list and pass it to the
-app chart's generic `routeFilters` value:
+HTTPRoute filter lists in `<auth-release>-route-filters`. `api-token` mode emits
+only `api`; static frontend routes remain public. `email-header` and `login-gate`
+also emit `document`, allowing Terraform-owned services such as Grafana to
+protect both their UI and API routes.
+
+The ForwardAuth Terraform module reads those policies. App modules pass its
+consumed output to `setup_app_base`, which publishes `forward-auth-config` in
+the app's Azure Key Vault with scoped deployment read permission. Deploy jobs
+read AKV and pass the API list to the backend chart's generic `routeFilters` value:
 
 ```bash
-API_FILTERS=$(kubectl -n hello get configmap hello-oauth2-proxy-route-filters -o jsonpath='{.data.api}')
+AUTH_CONFIG=$(az keyvault secret show --vault-name p07-hello --name forward-auth-config --query value -o tsv)
+API_FILTERS=$(jq -ce '.route_filters.api' <<<"$AUTH_CONFIG")
 helm upgrade hello-server mucsi96/spring-app --set-json routeFilters="$API_FILTERS" # plus app values
 ```
 
@@ -50,10 +57,11 @@ one `ExtensionRef` (authenticate), and `ResponseHeaderModifier` (cache/header
 policy). OAuth and machine routes use standard response-header filters directly.
 The chart creates no custom Headers or Chain resources.
 
-The document authenticator starts login through a static-202 upstream. The API
-authenticator uses internal `/oauth2/auth` and returns 401/403 without an
-error-page redirect. API tokens are forwarded only on API routes; frontend
-static servers do not receive them. Preserve ordinary application cookies.
+For protected service UIs, the document authenticator starts login through a
+static-202 upstream. The API authenticator uses internal `/oauth2/auth` and
+returns 401/403 without an error-page redirect. API tokens are forwarded only
+on API routes; frontend static servers do not receive them. Preserve ordinary
+application cookies.
 
 Supported `mode` values:
 
@@ -63,11 +71,29 @@ Supported `mode` values:
 | `email-header` | Empty | `X-Auth-Request-Email` on both authenticators (Grafana) |
 | `login-gate` | Empty | No identity credentials |
 
-Only exact public control endpoints are routed: `/oauth2/start`, `/callback`,
-`/sign_in`, `/sign_out`, `/userinfo` under the `/oauth2` prefix. Never expose
+### Upgrade from 2.0.0
+
+Existing API-app consumers must remove document filters from their frontend
+HTTPRoutes and deploy server-driven bootstrap before upgrading this auth release.
+The upgrade removes their document Middleware/policy. Keep the existing chart
+pin during the consumer cutover, then advance it to the newly published release.
+Protected service modes retain both policies.
+
+Every mode exposes the exact stock `/oauth2/start`, `/oauth2/callback`,
+`/oauth2/sign_in`, `/oauth2/sign_out` and `/oauth2/userinfo` control endpoints.
+Never expose
 `/oauth2/auth` or the static-202 root directly: they can carry bearer credentials
 in response headers. `/userinfo` is token-free; `/sign_out` is local app logout,
 not Entra-wide logout. A protected document can immediately restart Entra SSO.
+These handlers are provided by stock oauth2-proxy. The app server's bootstrap
+response selects `/oauth2/start` when a session is needed; the generic frontend
+loader follows the redirect instruction. Entra redirects to `/oauth2/callback`,
+registered by Terraform. The chart's `oauth-route.yaml` forwards those requests through
+Traefik to the proxy. The SPAs read token-free `/oauth2/userinfo` for header
+profile data, without managing OAuth, tokens or sessions. Login stays
+server-driven and there are no sign-in/sign-out controls in the SPA.
+Protected service UIs use document ForwardAuth to start login without
+application-specific client code.
 
 **Application mutations require Origin or CSRF-token protection.** OAuth callback
 CSRF validation does not protect application POST/PUT/DELETE requests. SameSite
@@ -94,7 +120,7 @@ generated configuration or enable a second upstream public route.
 
 Gateway API v1.6.3 defines `ExternalAuth` in its experimental channel. Traefik
 v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and p07's v1.6.1
-standard-channel CRDs do not expose it. The two ForwardAuth Middleware CRDs are
+standard-channel CRDs do not expose it. The ForwardAuth Middleware CRDs are
 therefore the remaining implementation-specific part; routing, header policies,
 Services and ConfigMaps use standard APIs.
 
