@@ -105,6 +105,34 @@ They create exact host/path/method routes directly to that same-namespace API,
 preserving its caller bearer token. Use only for independently authenticated
 machine endpoints; their backend must reject a browser cookie alone.
 
+### Public bootstrap GET routes
+
+`publicApiRoutes` renders an optional `<auth-release>-public-api` HTTPRoute for
+bootstrap handlers that must be reachable before a session exists. Terraform
+supplies these per-service values alongside the existing hostname and Gateway
+reference; the chart owns the Kubernetes routing resource.
+
+```yaml
+publicApiRoutes:
+  - path: /api/environment
+    service: hello-server
+    port: 8080
+```
+
+Each entry matches an exact `/api/` path and only `GET`, forwarding to a Service
+in the auth release's namespace without ForwardAuth. Responses use `no-store`
+and strip credential-bearing response headers. This lets the handler return
+configuration or a server-driven bootstrap redirect. Other API paths/methods
+continue through their existing protected routes.
+
+The list defaults to empty and creates no resource until configured. The schema
+requires a path, Service and integer port; custom methods are not accepted.
+The chart does not hardcode `/api/environment` or any application backend.
+
+This follows the Terraform module's existing `public_api_routes` contract and
+resource name. The companion module change must pass the list to Helm and remove
+its `kubectl_manifest.public_api` resource before module publication.
+
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
 helm dependency build charts/oauth2_proxy_forwardauth

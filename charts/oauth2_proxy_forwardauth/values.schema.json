@@ -3,6 +3,18 @@
   "type": "object",
   "required": ["global", "oauth2-proxy"],
   "properties": {
+    "publicApiRoutes": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "service", "port"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^/api/[^?# ]+$"},
+          "service": {"type": "string", "minLength": 1},
+          "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+        }
+      }
+    },
     "machineRoutes": {
       "type": "array",
       "items": {

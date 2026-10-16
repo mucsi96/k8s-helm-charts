@@ -41,6 +41,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     values = copy.deepcopy(VALUES)
     values["global"]["forwardAuth"].update(mode=mode, apiScope="api://hello-api/api-access" if mode == "api-token" else "")
     resources = render("oauth2_proxy_forwardauth", values)
+    assert not any(item["kind"] == "HTTPRoute" and item["metadata"]["name"].endswith("-public-api") for item in resources)
     alpha = yaml.safe_load(base64.b64decode(resource(resources, "Secret", "-alpha")["data"]["oauth2_proxy.yml"]))
     provider = alpha["providers"][0]
     assert provider["code_challenge_method"] == "S256"
@@ -106,6 +107,35 @@ for path, value in [
     target[path[-1]] = value
     render("oauth2_proxy_forwardauth", values, success=False)
 
+for mode in ["api-token", "email-header", "login-gate"]:
+    values = copy.deepcopy(VALUES)
+    values["global"]["forwardAuth"].update(host="bootstrap.example.test", mode=mode, apiScope="api://hello-api/api-access" if mode == "api-token" else "")
+    values["gateway"] = {"name": "shared-gateway", "namespace": "ingress", "sectionName": "https"}
+    values["publicApiRoutes"] = [
+        {"path": "/api/environment", "service": "hello-server", "port": 8080},
+        {"path": "/api/bootstrap-metadata", "service": "other-api", "port": 9090},
+    ]
+    public = resource(render("oauth2_proxy_forwardauth", values), "HTTPRoute", "-public-api")
+    assert public["metadata"] == {"name": "hello-oauth2-proxy-public-api", "namespace": "hello"}
+    assert public["spec"]["hostnames"] == ["bootstrap.example.test"]
+    assert public["spec"]["parentRefs"] == [{"name": "shared-gateway", "namespace": "ingress", "sectionName": "https"}]
+    assert len(public["spec"]["rules"]) == 2
+    for rule, supplied in zip(public["spec"]["rules"], values["publicApiRoutes"]):
+        assert rule["matches"] == [{"path": {"type": "Exact", "value": supplied["path"]}, "method": "GET"}]
+        assert rule["backendRefs"] == [{"name": supplied["service"], "port": supplied["port"]}]
+        assert rule["filters"] == [{"type": "ResponseHeaderModifier", "responseHeaderModifier": {
+            "set": [{"name": "Cache-Control", "value": "no-store"}],
+            "remove": ["Authorization", "X-Auth-Request-Access-Token"],
+        }}]
+
+for field, invalid in [("path", "/oauth2/auth"), ("path", "/api/environment?token=bad"), ("service", ""), ("port", 0), ("method", "POST")]:
+    values = copy.deepcopy(VALUES)
+    values["publicApiRoutes"] = [{"path": "/api/environment", "service": "hello-server", "port": 8080, field: invalid}]
+    render("oauth2_proxy_forwardauth", values, success=False)
+values = copy.deepcopy(VALUES)
+values["publicApiRoutes"] = [{"path": "/api/environment", "port": 8080}]
+render("oauth2_proxy_forwardauth", values, success=False)
+
 values = copy.deepcopy(VALUES)
 values["machineRoutes"] = [{"path": "/api/integrations/recipes/import", "method": "POST", "service": "cooking-server", "port": 8080}]
 machine = resource(render("oauth2_proxy_forwardauth", values), "HTTPRoute", "-machine")["spec"]["rules"][0]
@@ -126,4 +156,4 @@ for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     del after["spec"]["rules"][0]["filters"]
     assert before == after
 
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 6, "compatibleAppCharts": 5, "exactMachineRoute": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 12, "compatibleAppCharts": 5, "exactMachineRoute": True, "exactPublicGetRoutes": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))
