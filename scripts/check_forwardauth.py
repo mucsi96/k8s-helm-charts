@@ -61,7 +61,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     route = resource(resources, "HTTPRoute", "-oauth")
     paths = route["spec"]["rules"][0]["matches"]
     assert all(match["path"]["type"] == "Exact" for match in paths)
-    public_paths = ["start", "callback", "sign_in"] if mode == "api-token" else ["start", "callback", "sign_in", "sign_out", "userinfo"]
+    public_paths = ["start", "callback", "sign_in", "sign_out", "userinfo"]
     assert {match["path"]["value"] for match in paths} == {f"/oauth2/{path}" for path in public_paths}
     assert [item["type"] for item in route["spec"]["rules"][0]["filters"]] == ["ResponseHeaderModifier"]
     custom = [item for item in resources if item["apiVersion"].startswith("traefik.io/")]

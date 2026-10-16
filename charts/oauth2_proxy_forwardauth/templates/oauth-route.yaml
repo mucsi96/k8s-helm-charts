@@ -12,8 +12,7 @@ spec:
     - {{ .Values.global.forwardAuth.host | quote }}
   rules:
     - matches:
-      {{- $paths := ternary (list "start" "callback" "sign_in") (list "start" "callback" "sign_in" "sign_out" "userinfo") (eq .Values.global.forwardAuth.mode "api-token") }}
-      {{- range $paths }}
+      {{- range list "start" "callback" "sign_in" "sign_out" "userinfo" }}
         - path:
             type: Exact
             value: /oauth2/{{ . }}

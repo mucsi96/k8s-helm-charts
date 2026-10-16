@@ -75,13 +75,13 @@ Supported `mode` values:
 
 Existing API-app consumers must remove document filters from their frontend
 HTTPRoutes and deploy server-driven bootstrap before upgrading this auth release.
-The upgrade removes their document Middleware/policy and public sign-out/userinfo
-routes. Keep the existing chart pin during the consumer cutover, then advance it
-to the newly published release. Protected service modes retain both policies.
+The upgrade removes their document Middleware/policy. Keep the existing chart
+pin during the consumer cutover, then advance it to the newly published release.
+Protected service modes retain both policies.
 
-API-app mode exposes exact `/oauth2/start`, `/oauth2/callback` and
-`/oauth2/sign_in` control endpoints. Service modes also support the stock
-`/oauth2/sign_out` and `/oauth2/userinfo` handlers. Never expose
+Every mode exposes the exact stock `/oauth2/start`, `/oauth2/callback`,
+`/oauth2/sign_in`, `/oauth2/sign_out` and `/oauth2/userinfo` control endpoints.
+Never expose
 `/oauth2/auth` or the static-202 root directly: they can carry bearer credentials
 in response headers. `/userinfo` is token-free; `/sign_out` is local app logout,
 not Entra-wide logout. A protected document can immediately restart Entra SSO.
@@ -89,9 +89,11 @@ These handlers are provided by stock oauth2-proxy. The app server's bootstrap
 response selects `/oauth2/start` when a session is needed; the generic frontend
 loader follows the redirect instruction. Entra redirects to `/oauth2/callback`,
 registered by Terraform. The chart's `oauth-route.yaml` forwards those requests through
-Traefik to the proxy. The SPAs contain no auth UI, OAuth/session logic, userinfo
-requests or logout feature. Protected service UIs use document ForwardAuth to
-start login without application-specific client code.
+Traefik to the proxy. The SPAs read token-free `/oauth2/userinfo` for header
+profile data, without managing OAuth, tokens or sessions. Login stays
+server-driven and there are no sign-in/sign-out controls in the SPA.
+Protected service UIs use document ForwardAuth to start login without
+application-specific client code.
 
 **Application mutations require Origin or CSRF-token protection.** OAuth callback
 CSRF validation does not protect application POST/PUT/DELETE requests. SameSite
