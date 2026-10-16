@@ -6,6 +6,23 @@
 {{- include "oauth2-proxy.fullname" (index .Subcharts "oauth2-proxy") -}}
 {{- end -}}
 
+{{- define "forwardauth.bootstrapConfig" -}}
+{{- $routes := list -}}
+{{- $paths := dict -}}
+{{- range .Values.bootstrapRoutes -}}
+{{- if hasKey $paths .path -}}{{- fail "bootstrapRoutes paths must be unique" -}}{{- end -}}
+{{- $_ := set $paths .path true -}}
+{{- $routes = append $routes (dict "path" .path "upstream" (printf "http://%s.%s.svc.cluster.local:%v%s" .service $.Release.Namespace .port .path)) -}}
+{{- end -}}
+{{- range .Values.excludedRoutes -}}
+{{- if and (eq .method "GET") (hasKey $paths .path) -}}{{- fail "bootstrapRoutes must not overlap GET excludedRoutes" -}}{{- end -}}
+{{- end -}}
+{{- $headers := list -}}
+{{- if eq .Values.global.forwardAuth.mode "api-token" -}}{{- $headers = list "Authorization" -}}
+{{- else if eq .Values.global.forwardAuth.mode "email-header" -}}{{- $headers = list "X-Auth-Request-Email" -}}{{- end -}}
+{{- dict "proxy_root_url" (printf "http://%s.%s.svc.cluster.local:80/" (include "forwardauth.proxyName" .) .Release.Namespace) "public_origin" (printf "https://%s" .Values.global.forwardAuth.host) "identity_headers" $headers "routes" $routes | toJson -}}
+{{- end -}}
+
 {{- define "forwardauth.routeFilters" -}}
 {{- $request := dict "type" "RequestHeaderModifier" "requestHeaderModifier" (dict "remove" (list "Authorization" "X-Auth-Request-Email" "X-Auth-Request-Access-Token" "X-Auth-Request-User" "X-Forwarded-User" "X-Forwarded-Email")) -}}
 {{- $auth := dict "type" "ExtensionRef" "extensionRef" (dict "group" "traefik.io" "kind" "Middleware" "name" (printf "%s-%s" .root.Release.Name .target)) -}}

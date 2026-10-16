@@ -3,6 +3,22 @@
   "type": "object",
   "required": ["global", "oauth2-proxy"],
   "properties": {
+    "bootstrapRoutes": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["path", "service", "port"],
+        "properties": {
+          "path": {"type": "string", "pattern": "^/[^?#\\s]*$", "not": {"pattern": "^/(?:oauth2|_bootstrap)(?:/|$)"}},
+          "service": {"type": "string", "maxLength": 63, "pattern": "^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$"},
+          "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+        }
+      }
+    },
+    "bootstrapAdapter": {
+      "type": "object",
+      "properties": {"image": {"type": "string", "minLength": 1}, "resources": {"type": "object"}}
+    },
     "excludedRoutes": {
       "type": "array",
       "items": {

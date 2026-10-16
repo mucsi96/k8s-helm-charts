@@ -74,10 +74,11 @@ Supported `mode` values:
 ### Upgrade from 2.0.0
 
 Existing API-app consumers must remove document filters from their frontend
-HTTPRoutes and deploy server-driven bootstrap before upgrading this auth release.
-The upgrade removes their document Middleware/policy. Keep the existing chart
-pin during the consumer cutover, then advance it to the newly published release.
-Protected service modes retain both policies.
+HTTPRoutes before upgrading this auth release, which removes their document
+Middleware/policy. Configure the shared bootstrap routes before deploying clients
+that use config-or-redirect loading. Coordinate these steps with the app cutover;
+old tabs are not guaranteed uninterrupted access. Protected service modes retain
+both policies.
 
 Every mode exposes the exact stock `/oauth2/start`, `/oauth2/callback`,
 `/oauth2/sign_in`, `/oauth2/sign_out` and `/oauth2/userinfo` control endpoints.
@@ -85,9 +86,9 @@ Never expose
 `/oauth2/auth` or the static-202 root directly: they can carry bearer credentials
 in response headers. `/userinfo` is token-free; `/sign_out` is local app logout,
 not Entra-wide logout. A protected document can immediately restart Entra SSO.
-These handlers are provided by stock oauth2-proxy. The app server's bootstrap
-response selects `/oauth2/start` when a session is needed; the generic frontend
-loader follows the redirect instruction. Entra redirects to `/oauth2/callback`,
+These handlers are provided by stock oauth2-proxy. For configured bootstrap
+paths, the shared adapter obtains the proxy's native login redirect and returns
+it as JSON for the generic frontend loader. Entra redirects to `/oauth2/callback`,
 registered by Terraform. The chart's `oauth-route.yaml` forwards those requests through
 Traefik to the proxy. The SPAs read token-free `/oauth2/userinfo` for header
 profile data, without managing OAuth, tokens or sessions. Login stays
@@ -109,10 +110,6 @@ using the configured hostname/Gateway and release namespace. For Cooking:
 
 ```yaml
 excludedRoutes:
-  - path: /api/environment
-    method: GET
-    service: cooking-server
-    port: 8080
   - path: /api/integrations/recipes/import
     method: POST
     service: cooking-server
@@ -120,8 +117,8 @@ excludedRoutes:
 ```
 
 Exclusion means only that the route skips ForwardAuth. Each handler enforces
-its own access contract: the bootstrap handler selects configuration or a login
-redirect, while the machine import requires its caller's bearer token and role.
+its own access contract: the machine import requires its caller's bearer token
+and role. Authenticated configuration loading belongs in `bootstrapRoutes` below.
 Caller Authorization headers and cookies are preserved. Responses use `no-store`
 and strip credential-bearing response headers. Other paths/methods continue
 through their existing routes; no blanket path-prefix bypass is created.
@@ -131,14 +128,57 @@ root-relative and exact, with no query/fragment/whitespace; `/oauth2` is reserve
 for the stock proxy handlers. Methods must be explicit supported HTTP methods,
 and ports must be integers from 1 to 65535. No app path or backend is hardcoded.
 
-The companion Terraform module supplies this single list as Helm values.
-The chart owns the HTTPRoute; the module must remove its separate routing
-manifest before module publication.
+The companion Terraform module supplies this list as Helm values. The chart owns
+the HTTPRoute; Terraform does not create a separate routing manifest.
+
+### Shared bootstrap adapter
+
+`bootstrapRoutes` configures exact GET paths that require an authenticated
+config-or-redirect response. These are different from `excludedRoutes`, which
+bypass the browser session check and leave access control to their handlers.
+
+```yaml
+bootstrapRoutes:
+  - path: /api/environment
+    service: hello-server
+    port: 8080
+  - path: /runtime/settings
+    service: settings-service
+    port: 9090
+```
+
+The chart creates the adapter Deployment, ClusterIP Service, ConfigMap and
+HTTPRoute only when this list is non-empty. Paths and same-namespace backend
+targets are supplied by the caller; no application endpoint is hardcoded.
+The config contains no OAuth client secret or tokens. Adapter code ships in
+the chart and runs in a digest-pinned stock Python image, with no service-account
+token, non-root identity and a read-only filesystem. `bootstrapAdapter.image`
+and `.resources` configure the runtime.
+
+The adapter asks the proxy's private `/` interactive handler with the session
+cookie, HTML Accept header and validated return target. A valid session lets it
+fetch configuration from the supplied backend. The proxy's native HTTP redirect
+becomes HTTP 200 JSON `{ "redirectTo": "<proxy Location>" }`, preserving every
+Set-Cookie header, including CSRF/PKCE state cookies. Denials remain denials;
+upstream failures fail closed. Token-bearing proxy/backend response headers are
+never returned to the browser. Verified identity headers are sent only to the
+configured backend, according to the selected auth mode.
+
+The frontend sends its relative URL as `returnTo` and follows the generic
+redirect instruction. External/malformed return targets are replaced with `/`.
+App environment handlers return configuration only, with no session HTTP client,
+redirect URL construction or bootstrap-specific server environment variables.
+Normal API ForwardAuth continues to return 401/403.
+
+Bootstrap and excluded GET paths cannot overlap, and bootstrap paths must be
+unique. `/oauth2` and `/_bootstrap` are reserved. Publish this chart before
+updating module/app consumers; advance their pins only to the released version.
 
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
 helm dependency build charts/oauth2_proxy_forwardauth
 python3 scripts/check_forwardauth.py
+python3 -B -m unittest discover -s scripts -p 'test_bootstrap_adapter.py'
 ```
 
 `global.forwardAuth` is shared with the dependency so generated legacy/alpha

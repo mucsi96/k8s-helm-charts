@@ -42,6 +42,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     values["global"]["forwardAuth"].update(mode=mode, apiScope="api://hello-api/api-access" if mode == "api-token" else "")
     resources = render("oauth2_proxy_forwardauth", values)
     assert not any(item["kind"] == "HTTPRoute" and item["metadata"]["name"].endswith("-excluded-routes") for item in resources)
+    assert not any(item["metadata"]["name"].endswith(("-bootstrap", "-bootstrap-config")) for item in resources)
     alpha = yaml.safe_load(base64.b64decode(resource(resources, "Secret", "-alpha")["data"]["oauth2_proxy.yml"]))
     provider = alpha["providers"][0]
     assert provider["code_challenge_method"] == "S256"
@@ -142,6 +143,46 @@ for missing in ["service", "method"]:
     values["excludedRoutes"] = [route]
     render("oauth2_proxy_forwardauth", values, success=False)
 
+for mode in ["api-token", "email-header", "login-gate"]:
+    values = copy.deepcopy(VALUES)
+    values["global"]["forwardAuth"].update(mode=mode, apiScope="api://hello-api/api-access" if mode == "api-token" else "")
+    values["bootstrapRoutes"] = [
+        {"path": "/api/environment", "service": "hello-server", "port": 8080},
+        {"path": "/runtime/settings", "service": "other-service", "port": 9090},
+    ]
+    resources = render("oauth2_proxy_forwardauth", values)
+    config_map = resource(resources, "ConfigMap", "-bootstrap-config")
+    config = json.loads(config_map["data"]["config.json"])
+    assert config["proxy_root_url"] == "http://hello-oauth2-proxy.hello.svc.cluster.local:80/"
+    assert config["public_origin"] == "https://hello.example.test"
+    assert config["identity_headers"] == (["Authorization"] if mode == "api-token" else ["X-Auth-Request-Email"] if mode == "email-header" else [])
+    assert config["routes"] == [
+        {"path": "/api/environment", "upstream": "http://hello-server.hello.svc.cluster.local:8080/api/environment"},
+        {"path": "/runtime/settings", "upstream": "http://other-service.hello.svc.cluster.local:9090/runtime/settings"},
+    ]
+    assert config_map["data"]["bootstrap_adapter.py"] == (ROOT / "charts/oauth2_proxy_forwardauth/files/bootstrap_adapter.py").read_text()
+    deployment = resource(resources, "Deployment", "-bootstrap")["spec"]["template"]["spec"]
+    assert deployment["automountServiceAccountToken"] is False
+    assert deployment["securityContext"]["runAsNonRoot"] is True
+    assert deployment["containers"][0]["securityContext"]["readOnlyRootFilesystem"] is True
+    assert "@sha256:" in deployment["containers"][0]["image"]
+    route = resource(resources, "HTTPRoute", "-bootstrap")["spec"]["rules"][0]
+    assert route["matches"] == [{"path": {"type": "Exact", "value": supplied["path"]}, "method": "GET"} for supplied in values["bootstrapRoutes"]]
+    assert route["backendRefs"] == [{"name": "hello-oauth2-proxy-bootstrap", "port": 80}]
+
+for field, invalid in [("path", "relative"), ("path", "/oauth2/auth"), ("path", "/_bootstrap/health"), ("service", "other.example"), ("service", "example.test/settings"), ("port", 0), ("method", "POST")]:
+    values = copy.deepcopy(VALUES)
+    values["bootstrapRoutes"] = [{"path": "/api/environment", "service": "hello-server", "port": 8080, field: invalid}]
+    render("oauth2_proxy_forwardauth", values, success=False)
+values = copy.deepcopy(VALUES)
+values["bootstrapRoutes"] = [{"path": "/api/environment", "port": 8080}]
+render("oauth2_proxy_forwardauth", values, success=False)
+values["bootstrapRoutes"] = [{"path": "/api/environment", "service": "hello-server", "port": 8080}] * 2
+render("oauth2_proxy_forwardauth", values, success=False)
+values["bootstrapRoutes"] = values["bootstrapRoutes"][:1]
+values["excludedRoutes"] = [{"path": "/api/environment", "method": "GET", "service": "hello-server", "port": 8080}]
+render("oauth2_proxy_forwardauth", values, success=False)
+
 for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     values = {"image": "example/app:1", "host": "hello.example.test", "serviceAccountName": "hello-api", "clientId": "example-client"}
     before = resource(render(chart, values), "HTTPRoute", "-route")
@@ -152,4 +193,4 @@ for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     del after["spec"]["rules"][0]["filters"]
     assert before == after
 
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 13, "compatibleAppCharts": 5, "exactForwardAuthExclusions": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 23, "compatibleAppCharts": 5, "exactForwardAuthExclusions": True, "configurableBootstrapRoutes": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))

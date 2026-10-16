@@ -115,6 +115,7 @@ jobs:
         run: |
           helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
           helm dependency build charts/oauth2_proxy_forwardauth
+          python3 -B -m unittest discover -s scripts -p 'test_bootstrap_adapter.py'
           python3 scripts/check_chart_versions.py
           python3 scripts/check_forwardauth.py
           python3 scripts/check_rust_app.py

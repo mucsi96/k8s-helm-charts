@@ -37,6 +37,7 @@ jobs:
         run: python3 scripts/set_chart_version.py charts/oauth2_proxy_forwardauth/Chart.yaml "$COUNTER" "$TAG"
       - name: Validate Rust runtime and standard routing contracts
         run: |
+          python3 -B -m unittest discover -s scripts -p 'test_bootstrap_adapter.py'
           python3 scripts/check_chart_versions.py
           helm lint charts/rust_app --set image=example/rust-app:1 --set host=rust.example.com
           python3 scripts/check_rust_app.py
