@@ -17,6 +17,12 @@ spec:
             type: Exact
             value: /oauth2/{{ . }}
       {{- end }}
+      {{- range list "GET" "HEAD" }}
+        - path:
+            type: PathPrefix
+            value: /oauth2/static
+          method: {{ . }}
+      {{- end }}
       filters:
         - type: ResponseHeaderModifier
           responseHeaderModifier:

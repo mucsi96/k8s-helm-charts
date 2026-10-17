@@ -43,6 +43,7 @@ providers:
     scope: {{ printf "openid profile email offline_access%s" (ternary (printf " %s" $auth.apiScope) "" (eq $auth.mode "api-token")) | quote }}
     code_challenge_method: S256
     additionalClaims: [name]
+    skipClaimsFromProfileURL: {{ ne $auth.mode "email-header" }}
     oidcConfig:
       issuerURL: {{ $auth.issuerURL | quote }}
       emailClaim: {{ ternary "email" "preferred_username" (eq $auth.mode "email-header") }}
