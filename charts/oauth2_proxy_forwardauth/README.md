@@ -32,6 +32,12 @@ API/login-gate modes use Entra's `preferred_username` for the proxy's required
 email slot, with `sub` as user ID; this avoids a Graph user-info lookup using an
 API access token when the optional email claim is absent. Email-header mode
 uses the actual `email` claim for Grafana. Neither email nor UPN decides API roles.
+API/login-gate modes set provider-level `skipClaimsFromProfileURL: true`: missing
+optional claims such as `groups` must not trigger a Microsoft Graph UserInfo call.
+An app-API access token has the wrong audience for Graph and would otherwise turn
+an otherwise valid callback into HTTP 500. Identity comes from the verified ID
+token; API issuer/audience/scope/role checks stay authoritative. Email-header mode
+retains profile enrichment for services that use the actual email claim.
 The cookie defaults to `__Host-<release>`, Secure, HttpOnly and SameSite=Lax.
 Default refresh/expiry are `5m`/`168h`; refresh must be below access-token lifetime.
 
@@ -81,6 +87,9 @@ Protected service modes retain both policies.
 
 Every mode exposes the exact stock `/oauth2/start`, `/oauth2/callback`,
 `/oauth2/sign_in`, `/oauth2/sign_out` and `/oauth2/userinfo` control endpoints.
+GET/HEAD requests under `/oauth2/static` serve the proxy's CSS, icons and fonts so
+its stock sign-in/error pages render correctly. This narrow static-asset prefix
+does not expose other proxy handlers.
 Never expose
 `/oauth2/auth` or the static-202 root directly: they can carry bearer credentials
 in response headers. `/userinfo` is token-free; `/sign_out` is local app logout,
@@ -139,7 +148,13 @@ manifest before module publication.
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
 helm dependency build charts/oauth2_proxy_forwardauth
 python3 scripts/check_forwardauth.py
+python3 scripts/check_forwardauth_login.py
 ```
+
+The shared login regression uses stock oauth2-proxy, Redis and the mock issuer.
+It reproduces a callback 500 when an optional claim triggers a rejecting profile
+endpoint, verifies the ID-token-only fix, and checks the stock error stylesheet.
+This platform integration test lives here rather than in each application.
 
 `global.forwardAuth` is shared with the dependency so generated legacy/alpha
 configuration has one source of truth. Configure ordinary runtime resources,

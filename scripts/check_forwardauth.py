@@ -48,6 +48,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     assert provider["oidcConfig"]["insecureSkipNonce"] is False
     assert provider["oidcConfig"]["emailClaim"] == ("email" if mode == "email-header" else "preferred_username")
     assert provider["oidcConfig"]["userIDClaim"] == "sub"
+    assert provider["skipClaimsFromProfileURL"] == (mode != "email-header")
     assert "User.Read" not in provider["scope"]
     assert ("api://hello-api/api-access" in provider["scope"]) == (mode == "api-token")
     injected = alpha.get("injectResponseHeaders", [])
@@ -61,9 +62,12 @@ for mode in ["api-token", "email-header", "login-gate"]:
     assert 'trusted_proxy_ips = ["10.42.0.0/16"]' in config
     route = resource(resources, "HTTPRoute", "-oauth")
     paths = route["spec"]["rules"][0]["matches"]
-    assert all(match["path"]["type"] == "Exact" for match in paths)
+    control_paths = [match for match in paths if match["path"]["type"] == "Exact"]
+    asset_paths = [match for match in paths if match["path"]["type"] == "PathPrefix"]
     public_paths = ["start", "callback", "sign_in", "sign_out", "userinfo"]
-    assert {match["path"]["value"] for match in paths} == {f"/oauth2/{path}" for path in public_paths}
+    assert {match["path"]["value"] for match in control_paths} == {f"/oauth2/{path}" for path in public_paths}
+    assert asset_paths == [{"path": {"type": "PathPrefix", "value": "/oauth2/static"}, "method": method} for method in ["GET", "HEAD"]]
+    assert len(paths) == len(control_paths) + len(asset_paths) == 7
     assert [item["type"] for item in route["spec"]["rules"][0]["filters"]] == ["ResponseHeaderModifier"]
     custom = [item for item in resources if item["apiVersion"].startswith("traefik.io/")]
     targets = ["api"] if mode == "api-token" else ["document", "api"]
