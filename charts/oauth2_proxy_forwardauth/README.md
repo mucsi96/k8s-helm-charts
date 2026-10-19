@@ -38,14 +38,16 @@ An app-API access token has the wrong audience for Graph and would otherwise tur
 an otherwise valid callback into HTTP 500. Identity comes from the verified ID
 token; API issuer/audience/scope/role checks stay authoritative. Email-header mode
 retains profile enrichment for services that use the actual email claim.
-The cookie defaults to `__Host-<release>`, Secure, HttpOnly and SameSite=Lax.
+Every app uses `__Host-session`, Secure, HttpOnly, SameSite=Lax, Path=/ and no
+Domain attribute. Host-only cookies are isolated between app hostnames even
+though their names match. Registrations and cookie secrets remain per-app.
 Default refresh/expiry are `5m`/`168h`; refresh must be below access-token lifetime.
 
 Install this proxy release through platform Terraform. It provides the Service,
 login/session configuration and narrow public OAuth routes. It creates no
 application authentication Middleware or policy ConfigMap.
 
-Client and API charts receive the proxy Service, port, cookie name and mode via
+Client and API charts receive the proxy Service, port and mode via
 their `auth` value and create their own middleware and filters. Terraform can
 publish that non-secret reference in app Key Vault; no policy readback is needed.
 See [application authentication and upgrade order](../../docs/application-auth.md).
@@ -72,8 +74,9 @@ It calls the proxy's `/` endpoint before rewriting the original path/query;
 ordinary assets stay public. API charts create their own `/oauth2/auth` check.
 Both charts and the proxy Service must use the same application namespace.
 
-**Upgrading an existing release:** first deploy app-owned middleware using the
-proxy reference and clear old policy filters. Only then upgrade this release,
+**Upgrading an existing release:** configure the existing proxy's cookie name as
+`__Host-session`, then deploy app-owned middleware using the proxy reference and
+clear old policy filters. The name change starts a new login session. Only then upgrade this release,
 which removes the previous proxy-owned middleware/ConfigMap. Old apps must keep
 their compatible proxy chart until their routes are converted.
 

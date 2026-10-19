@@ -1,10 +1,3 @@
-{{- $base := trimSuffix "/" (.Values.basePath | default "/") -}}
-{{- $prefix := $base | default "/" -}}
-{{- $index := printf "%s/index.html" $base -}}
-{{- $documents := list $prefix $index -}}
-{{- if $base -}}
-{{- $documents = append $documents (printf "%s/" $base) -}}
-{{- end -}}
 {{- $sets := dict -}}
 {{- $adds := dict -}}
 {{- $removes := list "authorization" "x-auth-request-access-token" "etag" "last-modified" -}}
@@ -45,7 +38,7 @@ spec:
   rules:
     - matches:
       {{- range $method := list "GET" "HEAD" }}
-      {{- range $path := $documents }}
+      {{- range $path := list "/" "/index.html" }}
         - path:
             type: Exact
             value: {{ $path | quote }}
@@ -53,7 +46,7 @@ spec:
       {{- end }}
         - path:
             type: PathPrefix
-            value: {{ $prefix | quote }}
+            value: /
           method: {{ $method }}
           headers:
             - name: Sec-Fetch-Dest
@@ -61,7 +54,7 @@ spec:
               value: document
         - path:
             type: PathPrefix
-            value: {{ $prefix | quote }}
+            value: /
           method: {{ $method }}
           headers:
             - name: Accept
@@ -110,7 +103,7 @@ spec:
           urlRewrite:
             path:
               type: ReplaceFullPath
-              replaceFullPath: {{ $index | quote }}
+              replaceFullPath: /index.html
       backendRefs:
         - name: {{ .Release.Name }}
           port: {{ required "appPort value is required!" .Values.appPort }}
@@ -124,7 +117,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ $prefix | quote }}
+            value: /
       filters:
         - type: RequestHeaderModifier
           requestHeaderModifier:

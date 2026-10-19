@@ -17,7 +17,6 @@ helm install my-client-app mucsi96/client-app
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `appPort` | Port the application listens on | `8000` |
-| `basePath` | Browser URL prefix and origin file prefix | `/` |
 | `healthPath` | Static origin path used by startup/readiness/liveness probes | `/` |
 | `auth` | Same-namespace proxy reference; creates client-owned document authentication | `null` |
 | `routeFilters` | Manual document filters when `auth` is null | `[]` |
@@ -33,8 +32,8 @@ helm install my-client-app mucsi96/client-app
 GET/HEAD `/`, `/index.html` and document requests (`Sec-Fetch-Dest: document` or
 HTML in `Accept`) use the document rule. The Gateway selects `/index.html` for
 these requests; nginx/storage only serves actual files and returns 404 for
-missing assets. `basePath`, when supplied, scopes both rules and the index path
-under that prefix. For a static-only origin, use `healthPath=/index.html`.
+missing assets. Every client app is hosted at `/` on its own hostname; there is
+no configurable UI base path. For a static-only origin, use `healthPath=/index.html`.
 
 The static catchall does not perform document authentication or index rewriting.
 More-specific API, OAuth and telemetry routes keep their own policy. Both static
@@ -46,7 +45,6 @@ Authentication is optional. Supply the proxy reference directly:
 auth:
   proxyService: hello-oauth2-proxy
   proxyPort: 80
-  cookieName: __Host-hello-oauth2-proxy
   mode: api-token
 ```
 
@@ -54,7 +52,8 @@ The client chart creates `<client-release>-auth` and its own header/auth filters
 It calls the proxy's internal `/` endpoint to start login before URL rewriting.
 It forwards no identity credentials to the static server. Backend request filters
 strip cookies only after authentication, avoiding duplicate rule filters.
-The cookie name must match the proxy so refresh/clear cookies propagate correctly.
+All proxies and app middleware use the fixed host-only `__Host-session` cookie
+and its `__Host-session_csrf` login companion. No cookie-name setting is needed.
 `proxyPort` defaults to 80; `mode` defaults to api-token and may also be
 email-header or login-gate. Static document checks forward no identity in any mode.
 
@@ -88,16 +87,13 @@ Bundle URLs must be root-relative or base-aware so refreshing a deep route does
 not request assets relative to that route. A root deployment can use Vite's
 default `base: '/'`, producing `/assets/...` URLs.
 
-For an app hosted at `/portal`, set chart `basePath: /portal`, React Router
-`basename="/portal"` (or the equivalent `createBrowserRouter` option), and the
-bundler asset base to `/portal/`. Host the build files under that same origin
-prefix: `/portal/index.html` and `/portal/assets/...`. Nested navigation at
-`/portal/teams/acme/projects/42/settings/members` then uses that app's index and
-assets. Paths outside the prefix are not captured by this client route.
+Keep the router and bundler base at `/`, with origin files at `/index.html` and
+`/assets/...`. A URL such as `/portal/teams/acme/projects/42` is simply another
+nested application route; it still receives `/index.html`.
 
-The shared Gateway regression covers protected root history routes and public
-prefixed history routes, including direct entry, refresh, trailing slashes,
-query preservation, dotted parameters, asset loading and missing-asset 404s.
+The shared Gateway regression covers protected and public apps on separate
+hostnames, including direct entry, refresh, trailing slashes, query preservation,
+dotted parameters, asset loading, cookie isolation and missing-asset 404s.
 
 ## Inline runtime configuration
 

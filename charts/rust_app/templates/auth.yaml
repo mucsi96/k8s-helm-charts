@@ -1,15 +1,15 @@
 {{- if ne .Values.auth nil }}
 {{- $auth := .Values.auth -}}
 {{- $service := required "auth.proxyService is required" $auth.proxyService -}}
-{{- $cookie := required "auth.cookieName is required" $auth.cookieName -}}
+{{- $cookie := "__Host-session" -}}
 {{- $port := 80 -}}
 {{- if hasKey $auth "proxyPort" -}}{{- $port = $auth.proxyPort -}}{{- end -}}
 {{- $mode := $auth.mode | default "api-token" -}}
 {{- if or (not (regexMatch "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" $service)) (gt (len $service) 63) -}}
 {{- fail "auth.proxyService must be a same-namespace Service name" -}}
 {{- end -}}
-{{- if not (regexMatch "^__Host-[a-zA-Z0-9_-]+$" $cookie) -}}
-{{- fail "auth.cookieName must be a production __Host- cookie name" -}}
+{{- if hasKey $auth "cookieName" -}}
+{{- fail "auth.cookieName is not configurable; all app hosts use __Host-session" -}}
 {{- end -}}
 {{- if or (lt (int $port) 1) (gt (int $port) 65535) (ne (float64 $port) (float64 (int $port))) -}}
 {{- fail "auth.proxyPort must be an integer between 1 and 65535" -}}

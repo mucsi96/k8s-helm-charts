@@ -35,7 +35,7 @@ Deploys a static frontend application using nginx, suitable for React, Vue, Angu
 
 | Parameter | Description | Example | Default |
 |-----------|-------------|---------|---------|
-| `basePath` | Base path prefix for the application | `/app` | - |
+| `auth` | Same-namespace proxy reference for document authentication | `{proxyService: my-app-oauth2-proxy}` | `null` |
 | `env` | Environment variables as key-value pairs | See example below | `{}` |
 
 ### Example values.yaml
@@ -44,11 +44,13 @@ Deploys a static frontend application using nginx, suitable for React, Vue, Angu
 image: myregistry.io/my-frontend-app:1.0.0
 appPort: 80
 host: myapp.example.com
-basePath: /dashboard
 env:
   API_URL: https://api.example.com
   FEATURE_FLAG: "true"
 ```
+
+Client apps always use `/` on their own hostname. Nested browser paths are
+internally rewritten to `/index.html`; API chart path prefixes remain configurable.
 
 ---
 

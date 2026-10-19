@@ -42,6 +42,7 @@ def main():
         ports.add(free_port())
     issuer_port, proxy_port, origin_port, gateway_port, kubernetes_port = sorted(ports)
     public = f'http://localhost:{gateway_port}'
+    other_app = f'http://127.0.0.1:{gateway_port}'
     issuer = f'http://localhost:{issuer_port}/default'
     runtime = {'clientLogUrl': f'{public}/_telemetry/collect', 'clientAppName': 'fixture-$1-</script>'}
     values = {
@@ -58,13 +59,13 @@ def main():
     client_values = {
         'image': 'example/static-origin:1', 'host': 'localhost', 'appPort': origin_port,
         'gateway': values['gateway'], 'runtimeConfig': runtime,
-        'auth': {'proxyService': get('Service', 'oauth2-proxy')['metadata']['name'], 'proxyPort': 80, 'cookieName': '__Host-fixture'},
+        'auth': {'proxyService': get('Service', 'oauth2-proxy')['metadata']['name'], 'proxyPort': 80},
     }
-    prefixed_runtime = {**runtime, 'clientAppName': 'prefixed-fixture'}
+    public_runtime = {**runtime, 'clientAppName': 'public-fixture'}
     client_resources = []
     for release, configuration in [
         ('static-origin', client_values),
-        ('prefixed-origin', {**client_values, 'basePath': '/portal', 'auth': None, 'runtimeConfig': prefixed_runtime}),
+        ('public-origin', {**client_values, 'host': '127.0.0.1', 'auth': None, 'runtimeConfig': public_runtime}),
     ]:
         rendered_client = subprocess.run(['helm', 'template', release, str(ROOT / 'charts/client_app'), '-f', '-'],
                                          input=yaml.safe_dump(configuration), capture_output=True, text=True, check=True)
@@ -109,7 +110,7 @@ def main():
              'backendRefs': [{'name': 'static-origin', 'port': origin_port}],
          }]}},
     ])
-    for service, port, target in [('static-origin', origin_port, origin_port), ('prefixed-origin', origin_port, origin_port), ('api-origin', origin_port, origin_port),
+    for service, port, target in [('static-origin', origin_port, origin_port), ('public-origin', origin_port, origin_port), ('api-origin', origin_port, origin_port),
                                   (get('Service', 'oauth2-proxy')['metadata']['name'], 80, proxy_port)]:
         kubernetes.extend([
             {'apiVersion': 'v1', 'kind': 'Service', 'metadata': {'name': service, 'namespace': 'default'},
@@ -194,7 +195,6 @@ def main():
             assert fetch(f'{public}/oauth2/staticevil')[0] == 404
             nested_path = '/teams/acme/projects/42/settings/members'
             assert fetch(f'http://localhost:{origin_port}{nested_path}')[0] == 404
-            assert fetch(f'http://localhost:{origin_port}/portal{nested_path}')[0] == 404
             cookies = CookieJar()
             target = f'{public}{nested_path}?tab=permissions&returnTo=%2Freports%2Fweekly'
             status, headers, body, final = fetch(target, cookies, {'Accept': 'text/html', 'Accept-Encoding': 'gzip'})
@@ -205,15 +205,15 @@ def main():
             assert json.loads(injected) == runtime and '</script>' not in injected
             # BrowserRouter/history URLs must survive direct entry and refresh at any depth.
             public_cookies = CookieJar()
-            for path, expected_config, asset_path, session in [
-                (nested_path + '/', runtime, '/assets/main-HASH.js', cookies),
-                ('/teams/acme/projects/release.v2/files/report.csv/edit?mode=preview', runtime, '/assets/main-HASH.js', cookies),
-                ('/portal', prefixed_runtime, '/portal/assets/main-HASH.js', public_cookies),
-                ('/portal' + nested_path + '?tab=permissions', prefixed_runtime, '/portal/assets/main-HASH.js', public_cookies),
-                ('/portal' + nested_path + '/', prefixed_runtime, '/portal/assets/main-HASH.js', public_cookies),
-                ('/portal-other' + nested_path, runtime, '/assets/main-HASH.js', cookies),
+            for host, path, expected_config, session in [
+                (public, nested_path + '/', runtime, cookies),
+                (public, '/teams/acme/projects/release.v2/files/report.csv/edit?mode=preview', runtime, cookies),
+                (other_app, '/', public_runtime, public_cookies),
+                (other_app, nested_path + '?tab=permissions', public_runtime, public_cookies),
+                (other_app, nested_path + '/', public_runtime, public_cookies),
+                (public, '/portal' + nested_path, runtime, cookies),
             ]:
-                url = public + path
+                url = host + path
                 for _ in range(2):
                     status, headers, body, final = fetch(url, session, {'Accept': 'text/html'}, follow=False)
                     assert status == 200 and final == url, f'Nested navigation/refresh failed: {path}'
@@ -221,12 +221,19 @@ def main():
                     config = re.search(r'__APP_CONFIG__\s*=\s*({.*?});', body.decode()).group(1)
                     assert json.loads(config) == expected_config, f'Wrong app handled nested route: {path}'
                     scripts = re.findall(r'<script[^>]+src="([^"]+)"', body.decode())
-                    assert scripts == [asset_path], 'Nested documents need base-aware asset URLs'
+                    assert scripts == ['/assets/main-HASH.js'], 'Nested documents need root-relative asset URLs'
                     asset_status, asset_headers, _, _ = fetch(urljoin(final, scripts[0]))
                     assert asset_status == 200 and 'javascript' in asset_headers.get('Content-Type', '')
-            assert len(public_cookies) == 0, 'Unauthenticated prefixed SPA unexpectedly started login'
-            assert fetch(f'{public}/portal/assets/missing.js')[0] == 404
-            assert fetch(f'{public}/portal{nested_path}', headers={'Sec-Fetch-Dest': 'document'}, method='HEAD')[0] == 200
+            assert len(public_cookies) == 0, 'Public SPA unexpectedly started login'
+            assert fetch(f'{other_app}/assets/missing.js')[0] == 404
+            assert fetch(f'{other_app}{nested_path}', headers={'Sec-Fetch-Dest': 'document'}, method='HEAD')[0] == 200
+            # A session established on one hostname is not sent to another app host.
+            same_host_request = Request(public + '/api/data')
+            cookies.add_cookie_header(same_host_request)
+            assert 'edge-fixture=' in same_host_request.get_header('Cookie', '')
+            other_host_request = Request(other_app + '/api/data')
+            cookies.add_cookie_header(other_host_request)
+            assert other_host_request.get_header('Cookie') is None
             status, headers, body, _ = fetch(f'{public}/index.html', cookies, {
                 'If-None-Match': '"origin-only-etag"', 'If-Modified-Since': 'Mon, 01 Jan 2024 00:00:00 GMT',
                 'Range': 'bytes=0-10', 'If-Range': '"origin-only-etag"',
@@ -240,10 +247,10 @@ def main():
             assert fetch(f'{public}/oauth2/auth', cookies)[0] == 404
             assert fetch(f'{public}/_telemetry/collect', cookies, {'Content-Type': 'application/json', 'Authorization': 'Bearer forged', 'X-XSRF-TOKEN': 'private'}, b'{}')[0] == 202
             records = json.loads(fetch(f'http://localhost:{origin_port}/requests')[2])
-            index_requests = [item for item in records if item['path'].split('?')[0] in {'/index.html', '/portal/index.html'}]
+            index_requests = [item for item in records if item['path'].split('?')[0] == '/index.html']
             assert index_requests and all(not item['cookie'] and not item['authorization'] and item['encoding'] == 'identity'
                                           and not item['conditional'] and not item['range'] for item in index_requests)
-            assets = [item for item in records if item['path'] in {'/main.js', '/assets/main-HASH.js', '/portal/assets/main-HASH.js'}]
+            assets = [item for item in records if item['path'] in {'/main.js', '/assets/main-HASH.js'}]
             assert assets and all(not item['cookie'] and not item['authorization'] for item in assets)
             telemetry = next(item for item in records if item['path'] == '/collect')
             assert not telemetry['cookie'] and not telemetry['authorization'] and not telemetry['xsrf']
@@ -255,7 +262,7 @@ def main():
             }.items() for item in routes), 'Gateway controller rejected a rendered route'
             print(json.dumps({'documentAuthBeforeIndex': True, 'spaPathQueryRestored': True, 'runtimeConfigInjected': True,
                               'originHasNoSpaFallback': True, 'sameOriginTelemetry': True, 'staticOriginReceivesNoCredentials': True,
-                              'nestedHistoryRoutes': True, 'prefixedHistoryRoutes': True, 'deepLinkRefreshAndAssets': True}))
+                              'nestedHistoryRoutes': True, 'hostOnlyCookieIsolation': True, 'rootOnlyApps': True, 'deepLinkRefreshAndAssets': True}))
         except Exception:
             for container in ['gateway', 'proxy', 'kubernetes']:
                 result = subprocess.run(['podman', 'logs', '--tail', '40', f'{name}-{container}'], capture_output=True, text=True)

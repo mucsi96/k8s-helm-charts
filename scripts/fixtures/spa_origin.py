@@ -6,8 +6,7 @@ import os
 
 requests = []
 INDEX = b'''<!doctype html><html><head><script>window.__APP_CONFIG__ = "__APP_CONFIG_JSON__";</script></head><body><script src="/assets/main-HASH.js"></script></body></html>'''
-INDEXES = {'/index.html': INDEX, '/portal/index.html': INDEX.replace(b'/assets/', b'/portal/assets/')}
-ASSETS = {'/main.js', '/assets/main-HASH.js', '/portal/assets/main-HASH.js'}
+ASSETS = {'/main.js', '/assets/main-HASH.js'}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -35,8 +34,8 @@ class Handler(BaseHTTPRequestHandler):
                          'conditional': bool(self.headers.get('If-None-Match') or self.headers.get('If-Modified-Since')),
                          'range': bool(self.headers.get('Range') or self.headers.get('If-Range')),
                          'encoding': self.headers.get('Accept-Encoding')})
-        if path in INDEXES:
-            index = INDEXES[path]
+        if path == '/index.html':
+            index = INDEX
             if self.headers.get('If-None-Match') == '"origin-only-etag"' or self.headers.get('If-Modified-Since'):
                 self.respond(304, b'', 'text/html')
             elif self.headers.get('Range'):

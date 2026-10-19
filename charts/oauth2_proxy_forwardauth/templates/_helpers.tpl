@@ -1,5 +1,5 @@
 {{- define "forwardauth.cookieName" -}}
-{{- default (printf "__Host-%s" .Release.Name) .Values.global.forwardAuth.cookieName -}}
+__Host-session
 {{- end -}}
 
 {{- define "forwardauth.proxyName" -}}

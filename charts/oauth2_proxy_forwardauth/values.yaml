@@ -5,7 +5,6 @@ global:
     credentialsSecret: ""
     mode: api-token
     apiScope: ""
-    cookieName: ""
     cookieRefresh: 5m
     cookieExpire: 168h
     trustedProxyCIDRs: []

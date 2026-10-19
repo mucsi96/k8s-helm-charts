@@ -1,5 +1,4 @@
 appPort: 8000
-basePath: /
 healthPath: /
 routeFilters: []
 auth: null

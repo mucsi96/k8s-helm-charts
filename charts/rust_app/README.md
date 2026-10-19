@@ -79,8 +79,7 @@ For ForwardAuth, provide a same-namespace proxy reference:
 
 ```bash
 helm upgrade my-rust-app mucsi96/rust-app \
-  --set auth.proxyService=my-app-oauth2-proxy \
-  --set auth.cookieName=__Host-my-app-oauth2-proxy # plus app values
+  --set auth.proxyService=my-app-oauth2-proxy # plus app values
 ```
 
 The Rust chart owns the API authentication Middleware and header/cache filters.

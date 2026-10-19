@@ -68,8 +68,7 @@ For stock ForwardAuth, supply the proxy reference:
 
 ```bash
 helm upgrade my-go-app mucsi96/go-app \
-  --set auth.proxyService=my-app-oauth2-proxy \
-  --set auth.cookieName=__Host-my-app-oauth2-proxy # plus app values
+  --set auth.proxyService=my-app-oauth2-proxy # plus app values
 ```
 
 The Go chart creates its own Middleware, strips untrusted identity before the
