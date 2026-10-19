@@ -1,8 +1,11 @@
 appPort: 8000
 healthPath: /
 routeFilters: []
-route:
-  enabled: true
+runtimeConfig: {}
+gateway:
+  name: traefik
+  namespace: traefik
+  sectionName: websecure
 resources:
   requests:
     cpu: 10m

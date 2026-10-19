@@ -1,4 +1,33 @@
-{{- if .Values.route.enabled }}
+{{- $base := trimSuffix "/" (.Values.basePath | default "/") -}}
+{{- $prefix := $base | default "/" -}}
+{{- $index := printf "%s/index.html" $base -}}
+{{- $documents := list $prefix $index -}}
+{{- if $base -}}
+{{- $documents = append $documents (printf "%s/" $base) -}}
+{{- end -}}
+{{- $sets := dict -}}
+{{- $adds := dict -}}
+{{- $removes := list "authorization" "x-auth-request-access-token" "etag" "last-modified" -}}
+{{- range .Values.routeFilters -}}
+{{- if eq .type "ResponseHeaderModifier" -}}
+{{- range .responseHeaderModifier.set -}}
+{{- $_ := set $sets (lower .name) .value -}}
+{{- end -}}
+{{- range .responseHeaderModifier.add -}}
+{{- $_ := set $adds (lower .name) .value -}}
+{{- end -}}
+{{- range .responseHeaderModifier.remove -}}
+{{- $removes = append $removes (lower .) -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- $removes = without ($removes | uniq) "cache-control" -}}
+{{- range $removes -}}
+{{- $_ := unset $sets . -}}
+{{- $_ := unset $adds . -}}
+{{- end -}}
+{{- $_ := unset $adds "cache-control" -}}
+{{- $_ := set $sets "cache-control" "private, no-cache, no-store" -}}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -8,21 +37,91 @@ metadata:
     app: {{ .Release.Name }}
 spec:
   parentRefs:
-    - name: traefik
-      namespace: traefik
-      sectionName: websecure
+    - name: {{ .Values.gateway.name }}
+      namespace: {{ .Values.gateway.namespace }}
+      sectionName: {{ .Values.gateway.sectionName }}
   hostnames:
     - {{ required "host value is required!" .Values.host | quote }}
   rules:
     - matches:
+      {{- range $method := list "GET" "HEAD" }}
+      {{- range $path := $documents }}
+        - path:
+            type: Exact
+            value: {{ $path | quote }}
+          method: {{ $method }}
+      {{- end }}
         - path:
             type: PathPrefix
-            value: {{ .Values.basePath | default "/" | quote }}
-      {{- with .Values.routeFilters }}
-      filters:
-        {{- toYaml . | nindent 8 }}
+            value: {{ $prefix | quote }}
+          method: {{ $method }}
+          headers:
+            - name: Sec-Fetch-Dest
+              type: Exact
+              value: document
+        - path:
+            type: PathPrefix
+            value: {{ $prefix | quote }}
+          method: {{ $method }}
+          headers:
+            - name: Accept
+              type: RegularExpression
+              value: '(?i)(^|[ ,])text/html([ ;,]|$)'
       {{- end }}
+      filters:
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set:
+            {{- range $name, $value := $sets }}
+              - name: {{ $name }}
+                value: {{ $value | quote }}
+            {{- end }}
+            {{- if $adds }}
+            add:
+            {{- range $name, $value := $adds }}
+              - name: {{ $name }}
+                value: {{ $value | quote }}
+            {{- end }}
+            {{- end }}
+            remove: {{ $removes | toJson }}
+      {{- range .Values.routeFilters }}
+      {{- if ne .type "ResponseHeaderModifier" }}
+        - {{ toYaml . | nindent 10 | trim }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.runtimeConfig }}
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: {{ .Release.Name }}-index-config
+      {{- end }}
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplaceFullPath
+              replaceFullPath: {{ $index | quote }}
       backendRefs:
         - name: {{ .Release.Name }}
           port: {{ required "appPort value is required!" .Values.appPort }}
-{{- end }}
+          filters:
+            - type: RequestHeaderModifier
+              requestHeaderModifier:
+                remove: [Authorization, Cookie, X-XSRF-TOKEN, X-Auth-Request-Email, X-Auth-Request-Access-Token, X-Auth-Request-User, X-Forwarded-User, X-Forwarded-Email, If-None-Match, If-Modified-Since, Range, If-Range]
+                set:
+                  - name: Accept-Encoding
+                    value: identity
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ $prefix | quote }}
+      filters:
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Authorization, Cookie, X-XSRF-TOKEN, X-Auth-Request-Email, X-Auth-Request-Access-Token, X-Auth-Request-User, X-Forwarded-User, X-Forwarded-Email]
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            remove: [Authorization, X-Auth-Request-Access-Token]
+      backendRefs:
+        - name: {{ .Release.Name }}
+          port: {{ .Values.appPort }}

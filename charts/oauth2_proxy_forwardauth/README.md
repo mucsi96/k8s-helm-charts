@@ -43,7 +43,7 @@ Default refresh/expiry are `5m`/`168h`; refresh must be below access-token lifet
 
 Install the auth release through platform Terraform. It publishes non-secret JSON
 HTTPRoute filter lists in `<auth-release>-route-filters`. `api-token` mode emits
-only `api`; frontend routing can be enabled separately with `frontend` below.
+only `api` by default; `documentAuth: true` also publishes `document`.
 `email-header` and `login-gate`
 also emit `document`, allowing Terraform-owned services such as Grafana to
 protect both their UI and API routes.
@@ -78,68 +78,23 @@ Supported `mode` values:
 | `email-header` | Empty | `X-Auth-Request-Email` on both authenticators (Grafana) |
 | `login-gate` | Empty | No identity credentials |
 
-### Gateway-owned SPA frontend
+### Document authentication for client-owned SPA routes
 
-`frontend` defaults to `null`, preserving existing app-owned bootstrap and
-protected-service routing. Enable it to create `<auth-release>-frontend` and a
-document authenticator in any mode:
+Set `documentAuth: true` to create the document authenticator/policy in
+`api-token` mode. The other modes always provide both policies. This setting
+only supplies authentication resources; the auth release has no SPA route,
+frontend Service reference or runtime configuration.
 
-```yaml
-frontend:
-  service: hello-client
-  port: 8000
-  runtimeConfig:
-    clientLogUrl: https://hello.example.test/_telemetry/collect
-    clientAppName: hello-client
-```
+The [client chart](../client_app/README.md) always owns its document/static
+HTTPRoute, SPA rewriting and optional inline configuration Middleware. Pass the
+published `document` policy as the client chart's `routeFilters`. Its document
+rule authenticates before rewriting the original path/query to index HTML;
+ordinary assets stay public. Pass the separate `api` policy to the server chart.
+Both charts and the auth release must use the same application namespace.
 
-The Service must be in the release namespace. Disable the frontend chart's own
-root route (`client-app: route.enabled=false`) so this route owns index delivery.
-Use `healthPath=/index.html` for a static-only origin.
-
-GET/HEAD `/`, `/index.html` and document requests (`Sec-Fetch-Dest: document` or
-HTML in `Accept`) authenticate before the Gateway rewrites the path to
-`/index.html`. ForwardAuth sees the original path/query, so login returns to the
-requested SPA location. More-specific API/OAuth routes retain their own policy.
-Other assets are public and are forwarded without an index fallback; missing
-files must return 404 at the origin. Cookies, bearer and identity headers are
-removed before either static-origin route reaches its backend.
-
-For nonempty `runtimeConfig`, the Gateway replaces the quoted marker in HTML:
-
-```html
-<script>window.__APP_CONFIG__ = "__APP_CONFIG_JSON__";</script>
-```
-
-Configuration is a public string-valued map; never include credentials. Helm
-JSON serialization escapes HTML delimiters and the replacement escapes literal
-dollars. The application should reject a missing/unreplaced configuration.
-There is no runtime config endpoint or backend environment controller.
-
-Inline replacement requires the pinned Traefik plugin in static controller
-configuration, enabled before installing the frontend policy:
-
-```yaml
-experimental:
-  plugins:
-    rewritebody:
-      moduleName: github.com/traefik/plugin-rewritebody
-      version: v0.3.1
-```
-
-The document filter order is significant: response cache/header policy,
-ForwardAuth, origin request-header policy, optional body rewrite, URL rewrite.
-Traefik 3.7.13's Gateway provider preserves this order. Documents use
-`private, no-cache, no-store`; validators, range and conditional requests are
-removed and the origin is requested with `Accept-Encoding: identity`. Serve
-uncompressed index HTML containing the marker; immutable assets retain normal
-compression/caching. The plugin buffers document responses only. These contracts
-also apply to a future storage origin; this chart does not provision storage.
-
-The telemetry URL must have a corresponding exact same-origin collector route.
-The logging Terraform module owns that route and strips cookies/bearer/CSRF
-headers before forwarding to Faro. It avoids cross-origin browser preflight;
-the collector's origin allowlist and rate limits still apply.
+The client chart owns public `runtimeConfig` and the index marker, including the
+pinned body-plugin requirement. Logging Terraform owns the exact same-origin
+Faro route. Authentication can be omitted without changing SPA route ownership.
 
 Every mode exposes the exact stock `/oauth2/start`, `/oauth2/callback`,
 `/oauth2/sign_in`, `/oauth2/sign_out` and `/oauth2/userinfo` control endpoints.
@@ -232,8 +187,8 @@ Gateway API v1.6.3 defines `ExternalAuth` in its experimental channel. Traefik
 v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and p07's v1.6.1
 standard-channel CRDs do not expose it. The ForwardAuth Middleware CRDs are
 therefore implementation-specific. Optional inline configuration adds one
-plugin Middleware; routing, header policies, Services and ConfigMaps use standard
-APIs.
+plugin Middleware in the client chart; routing, header policies, Services and
+ConfigMaps use standard APIs.
 
 - [GEP-1494 status](https://gateway-api.sigs.k8s.io/geps/gep-1494/)
 - [Traefik v3.7.14 filter switch](https://github.com/traefik/traefik/blob/v3.7.14/pkg/provider/kubernetes/gateway/httproute.go#L406-L479)

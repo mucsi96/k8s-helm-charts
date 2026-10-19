@@ -8,6 +8,7 @@ from pathlib import Path
 import re
 import subprocess
 import tempfile
+import time
 import tomllib
 from urllib.error import HTTPError
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPRedirectHandler, Request
@@ -46,7 +47,7 @@ def main():
         'global': {'forwardAuth': {'host': 'localhost', 'issuerURL': 'https://issuer.example.test/default',
                                   'credentialsSecret': 'fixture-oidc', 'mode': 'api-token',
                                   'apiScope': 'api://fixture-api/api-access', 'trustedProxyCIDRs': ['127.0.0.1/32']}},
-        'frontend': {'service': 'static-origin', 'port': origin_port, 'runtimeConfig': runtime},
+        'documentAuth': True,
         'gateway': {'name': 'fixture', 'namespace': 'default', 'sectionName': 'web'},
         'oauth2-proxy': {'sessionStorage': {'redis': {'existingSecret': 'fixture-redis', 'standalone': {'connectionUrl': 'redis://127.0.0.1:6379'}}}},
     }
@@ -54,6 +55,15 @@ def main():
                               input=yaml.safe_dump(values), capture_output=True, text=True, check=True)
     resources = [item for item in yaml.safe_load_all(rendered.stdout) if item]
     get = lambda kind, suffix: next(item for item in resources if item['kind'] == kind and item['metadata']['name'].endswith(suffix))
+    client_values = {
+        'image': 'example/static-origin:1', 'host': 'localhost', 'appPort': origin_port,
+        'gateway': values['gateway'], 'runtimeConfig': runtime,
+        'routeFilters': json.loads(get('ConfigMap', '-route-filters')['data']['document']),
+    }
+    rendered_client = subprocess.run(['helm', 'template', 'static-origin', str(ROOT / 'charts/client_app'), '-f', '-'],
+                                     input=yaml.safe_dump(client_values), capture_output=True, text=True, check=True)
+    client_resources = [item for item in yaml.safe_load_all(rendered_client.stdout) if item]
+    assert not any(item['kind'] == 'HTTPRoute' and item['metadata']['name'].endswith('-frontend') for item in resources)
     alpha = yaml.safe_load(base64.b64decode(get('Secret', '-alpha')['data']['oauth2_proxy.yml']))
     alpha['server'] = {'bindAddress': f'0.0.0.0:{proxy_port}'}
     provider = alpha['providers'][0]
@@ -63,7 +73,7 @@ def main():
     legacy.update(cookie_secure=False, cookie_name='edge-fixture', redirect_url=f'{public}/oauth2/callback',
                   whitelist_domains=['localhost:*'], session_store_type='redis', redis_connection_url='redis://127.0.0.1:6379',
                   cookie_secret=base64.b64encode(b'0123456789abcdef0123456789abcdef').decode())
-    kubernetes = copy.deepcopy([item for item in resources if item['kind'] in {'HTTPRoute', 'Middleware'}])
+    kubernetes = copy.deepcopy([item for item in [*resources, *client_resources] if item['kind'] in {'HTTPRoute', 'Middleware'}])
     for item in kubernetes:
         if item['kind'] == 'Middleware' and 'forwardAuth' in item['spec']:
             auth = item['spec']['forwardAuth']
@@ -155,6 +165,13 @@ def main():
             subprocess.run(['podman', 'restart', f'{name}-proxy'], check=True, capture_output=True)
             wait_for(f'{public}/ping')
             wait_for(f'{public}/oauth2/static/css/bulma.min.css')
+            # Gateway and CRD providers synchronize independently at startup.
+            for _ in range(60):
+                if fetch(f'{public}/index.html', follow=False)[0] == 302:
+                    break
+                time.sleep(1)
+            else:
+                raise RuntimeError('Client document route did not become ready')
             status, _, _, _ = fetch(f'{public}/index.html', headers={'Accept': 'application/javascript'}, follow=False)
             assert status == 302, 'Raw index bypassed document authentication'
             assert fetch(f'{public}/index.html', follow=False, method='HEAD')[0] == 302

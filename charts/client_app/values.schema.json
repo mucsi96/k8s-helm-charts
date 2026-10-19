@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "runtimeConfig": {"type": "object", "additionalProperties": {"type": "string"}},
+    "healthPath": {"type": "string", "pattern": "^/[^?#\\s]*$"},
+    "routeFilters": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type"],
+        "properties": {"type": {"enum": ["RequestHeaderModifier", "ResponseHeaderModifier", "ExtensionRef"]}}
+      }
+    }
+  }
+}
