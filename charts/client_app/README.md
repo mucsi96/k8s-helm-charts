@@ -17,6 +17,7 @@ helm install my-client-app mucsi96/client-app
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `appPort` | Port the application listens on | `8000` |
+| `basePath` | Browser URL prefix and origin file prefix | `/` |
 | `healthPath` | Static origin path used by startup/readiness/liveness probes | `/` |
 | `routeFilters` | Standard auth/header filters applied to document requests | `[]` |
 | `runtimeConfig` | Public string-valued JSON injected into index HTML | `{}` |
@@ -49,6 +50,42 @@ only after authentication, avoiding duplicate filter types in a rule.
 The auth release supplies only auth middleware and policies. It does not own
 this HTTPRoute, SPA fallback or frontend configuration. With no `routeFilters`,
 the same SPA routes work without an auth release.
+
+### React path-based routing, including nested routes
+
+History routing is framework-agnostic: React Router's `BrowserRouter` or
+`createBrowserRouter`, Angular and Vue Router's HTML5 history mode use the same
+document rule. No route list is needed in Helm. Direct navigation or refresh at
+`/teams/acme/projects/42/settings/members?tab=permissions` serves index HTML while
+the browser keeps the original path/query for the client router to resolve.
+Trailing slashes and route parameters containing dots are supported too.
+
+For example, React Router can define nested routes normally:
+
+```jsx
+<BrowserRouter>
+  <Routes>
+    <Route path="teams/:teamId">
+      <Route path="projects/:projectId/settings/members" element={<Members />} />
+    </Route>
+  </Routes>
+</BrowserRouter>
+```
+
+Bundle URLs must be root-relative or base-aware so refreshing a deep route does
+not request assets relative to that route. A root deployment can use Vite's
+default `base: '/'`, producing `/assets/...` URLs.
+
+For an app hosted at `/portal`, set chart `basePath: /portal`, React Router
+`basename="/portal"` (or the equivalent `createBrowserRouter` option), and the
+bundler asset base to `/portal/`. Host the build files under that same origin
+prefix: `/portal/index.html` and `/portal/assets/...`. Nested navigation at
+`/portal/teams/acme/projects/42/settings/members` then uses that app's index and
+assets. Paths outside the prefix are not captured by this client route.
+
+The shared Gateway regression covers protected root history routes and public
+prefixed history routes, including direct entry, refresh, trailing slashes,
+query preservation, dotted parameters, asset loading and missing-asset 404s.
 
 ## Inline runtime configuration
 

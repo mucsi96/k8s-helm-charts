@@ -11,6 +11,7 @@ import tempfile
 import time
 import tomllib
 from urllib.error import HTTPError
+from urllib.parse import urljoin
 from urllib.request import build_opener, HTTPCookieProcessor, HTTPRedirectHandler, Request
 
 import yaml
@@ -60,9 +61,15 @@ def main():
         'gateway': values['gateway'], 'runtimeConfig': runtime,
         'routeFilters': json.loads(get('ConfigMap', '-route-filters')['data']['document']),
     }
-    rendered_client = subprocess.run(['helm', 'template', 'static-origin', str(ROOT / 'charts/client_app'), '-f', '-'],
-                                     input=yaml.safe_dump(client_values), capture_output=True, text=True, check=True)
-    client_resources = [item for item in yaml.safe_load_all(rendered_client.stdout) if item]
+    prefixed_runtime = {**runtime, 'clientAppName': 'prefixed-fixture'}
+    client_resources = []
+    for release, configuration in [
+        ('static-origin', client_values),
+        ('prefixed-origin', {**client_values, 'basePath': '/portal', 'routeFilters': [], 'runtimeConfig': prefixed_runtime}),
+    ]:
+        rendered_client = subprocess.run(['helm', 'template', release, str(ROOT / 'charts/client_app'), '-f', '-'],
+                                         input=yaml.safe_dump(configuration), capture_output=True, text=True, check=True)
+        client_resources.extend(item for item in yaml.safe_load_all(rendered_client.stdout) if item)
     assert not any(item['kind'] == 'HTTPRoute' and item['metadata']['name'].endswith('-frontend') for item in resources)
     alpha = yaml.safe_load(base64.b64decode(get('Secret', '-alpha')['data']['oauth2_proxy.yml']))
     alpha['server'] = {'bindAddress': f'0.0.0.0:{proxy_port}'}
@@ -101,7 +108,8 @@ def main():
              'backendRefs': [{'name': 'static-origin', 'port': origin_port}],
          }]}},
     ])
-    for service, port, target in [('static-origin', origin_port, origin_port), (get('Service', 'oauth2-proxy')['metadata']['name'], 80, proxy_port)]:
+    for service, port, target in [('static-origin', origin_port, origin_port), ('prefixed-origin', origin_port, origin_port),
+                                  (get('Service', 'oauth2-proxy')['metadata']['name'], 80, proxy_port)]:
         kubernetes.extend([
             {'apiVersion': 'v1', 'kind': 'Service', 'metadata': {'name': service, 'namespace': 'default'},
              'spec': {'ports': [{'name': 'http', 'port': port, 'targetPort': target, 'protocol': 'TCP'}]}},
@@ -180,15 +188,41 @@ def main():
             assert fetch(f'{public}/api/data')[0] == 401
             assert fetch(f'{public}/api/data', headers={'Accept': 'text/html'}, follow=False)[0] == 401
             assert fetch(f'{public}/oauth2/staticevil')[0] == 404
-            assert fetch(f'http://localhost:{origin_port}/recipes/42')[0] == 404
+            nested_path = '/teams/acme/projects/42/settings/members'
+            assert fetch(f'http://localhost:{origin_port}{nested_path}')[0] == 404
+            assert fetch(f'http://localhost:{origin_port}/portal{nested_path}')[0] == 404
             cookies = CookieJar()
-            target = f'{public}/recipes/42?view=edit'
+            target = f'{public}{nested_path}?tab=permissions&returnTo=%2Freports%2Fweekly'
             status, headers, body, final = fetch(target, cookies, {'Accept': 'text/html', 'Accept-Encoding': 'gzip'})
             assert status == 200 and final == target, 'SPA login did not restore the original path/query'
             assert '__APP_CONFIG_JSON__' not in body.decode() and 'no-store' in headers.get('Cache-Control', '')
             assert headers.get('ETag') is None and headers.get('Authorization') is None
             injected = re.search(r'__APP_CONFIG__\s*=\s*({.*?});', body.decode()).group(1)
             assert json.loads(injected) == runtime and '</script>' not in injected
+            # BrowserRouter/history URLs must survive direct entry and refresh at any depth.
+            public_cookies = CookieJar()
+            for path, expected_config, asset_path, session in [
+                (nested_path + '/', runtime, '/assets/main-HASH.js', cookies),
+                ('/teams/acme/projects/release.v2/files/report.csv/edit?mode=preview', runtime, '/assets/main-HASH.js', cookies),
+                ('/portal', prefixed_runtime, '/portal/assets/main-HASH.js', public_cookies),
+                ('/portal' + nested_path + '?tab=permissions', prefixed_runtime, '/portal/assets/main-HASH.js', public_cookies),
+                ('/portal' + nested_path + '/', prefixed_runtime, '/portal/assets/main-HASH.js', public_cookies),
+                ('/portal-other' + nested_path, runtime, '/assets/main-HASH.js', cookies),
+            ]:
+                url = public + path
+                for _ in range(2):
+                    status, headers, body, final = fetch(url, session, {'Accept': 'text/html'}, follow=False)
+                    assert status == 200 and final == url, f'Nested navigation/refresh failed: {path}'
+                    assert headers.get('Location') is None and 'no-store' in headers.get('Cache-Control', '')
+                    config = re.search(r'__APP_CONFIG__\s*=\s*({.*?});', body.decode()).group(1)
+                    assert json.loads(config) == expected_config, f'Wrong app handled nested route: {path}'
+                    scripts = re.findall(r'<script[^>]+src="([^"]+)"', body.decode())
+                    assert scripts == [asset_path], 'Nested documents need base-aware asset URLs'
+                    asset_status, asset_headers, _, _ = fetch(urljoin(final, scripts[0]))
+                    assert asset_status == 200 and 'javascript' in asset_headers.get('Content-Type', '')
+            assert len(public_cookies) == 0, 'Unauthenticated prefixed SPA unexpectedly started login'
+            assert fetch(f'{public}/portal/assets/missing.js')[0] == 404
+            assert fetch(f'{public}/portal{nested_path}', headers={'Sec-Fetch-Dest': 'document'}, method='HEAD')[0] == 200
             status, headers, body, _ = fetch(f'{public}/index.html', cookies, {
                 'If-None-Match': '"origin-only-etag"', 'If-Modified-Since': 'Mon, 01 Jan 2024 00:00:00 GMT',
                 'Range': 'bytes=0-10', 'If-Range': '"origin-only-etag"',
@@ -200,10 +234,10 @@ def main():
             assert fetch(f'{public}/oauth2/auth', cookies)[0] == 404
             assert fetch(f'{public}/_telemetry/collect', cookies, {'Content-Type': 'application/json', 'Authorization': 'Bearer forged', 'X-XSRF-TOKEN': 'private'}, b'{}')[0] == 202
             records = json.loads(fetch(f'http://localhost:{origin_port}/requests')[2])
-            index_requests = [item for item in records if item['path'].startswith('/index.html')]
+            index_requests = [item for item in records if item['path'].split('?')[0] in {'/index.html', '/portal/index.html'}]
             assert index_requests and all(not item['cookie'] and not item['authorization'] and item['encoding'] == 'identity'
                                           and not item['conditional'] and not item['range'] for item in index_requests)
-            assets = [item for item in records if item['path'] == '/main.js']
+            assets = [item for item in records if item['path'] in {'/main.js', '/assets/main-HASH.js', '/portal/assets/main-HASH.js'}]
             assert assets and all(not item['cookie'] and not item['authorization'] for item in assets)
             telemetry = next(item for item in records if item['path'] == '/collect')
             assert not telemetry['cookie'] and not telemetry['authorization'] and not telemetry['xsrf']
@@ -214,7 +248,8 @@ def main():
                 for parent in item.get('status', {}).get('parents', []) for condition in parent['conditions']
             }.items() for item in routes), 'Gateway controller rejected a rendered route'
             print(json.dumps({'documentAuthBeforeIndex': True, 'spaPathQueryRestored': True, 'runtimeConfigInjected': True,
-                              'originHasNoSpaFallback': True, 'sameOriginTelemetry': True, 'staticOriginReceivesNoCredentials': True}))
+                              'originHasNoSpaFallback': True, 'sameOriginTelemetry': True, 'staticOriginReceivesNoCredentials': True,
+                              'nestedHistoryRoutes': True, 'prefixedHistoryRoutes': True, 'deepLinkRefreshAndAssets': True}))
         except Exception:
             for container in ['gateway', 'proxy', 'kubernetes']:
                 result = subprocess.run(['podman', 'logs', '--tail', '40', f'{name}-{container}'], capture_output=True, text=True)
