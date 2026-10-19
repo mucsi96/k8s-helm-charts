@@ -2,3 +2,4 @@
 out/
 charts/oauth2_proxy_forwardauth/charts/
 scripts/databases_config.json
+__pycache__/

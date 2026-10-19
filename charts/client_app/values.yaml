@@ -1,5 +1,8 @@
 appPort: 8000
+healthPath: /
 routeFilters: []
+route:
+  enabled: true
 resources:
   requests:
     cpu: 10m

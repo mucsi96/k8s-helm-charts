@@ -118,6 +118,7 @@ jobs:
           python3 scripts/check_chart_versions.py
           python3 scripts/check_forwardauth.py
           python3 scripts/check_forwardauth_login.py
+          python3 scripts/check_spa_frontend.py
           python3 scripts/check_rust_app.py
 
       - name: Run chart-releaser

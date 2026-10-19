@@ -2,6 +2,9 @@
 {{- $proxy := include "forwardauth.proxyName" . -}}
 {{- $cookie := include "forwardauth.cookieName" . -}}
 {{- $targets := ternary (list "api") (list "document" "api") (eq $auth.mode "api-token") -}}
+{{- if and (eq $auth.mode "api-token") .Values.frontend -}}
+{{- $targets = list "document" "api" -}}
+{{- end -}}
 {{- range $mode := $targets }}
 ---
 apiVersion: traefik.io/v1alpha1

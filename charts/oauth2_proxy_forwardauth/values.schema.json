@@ -3,6 +3,16 @@
   "type": "object",
   "required": ["global", "oauth2-proxy"],
   "properties": {
+    "frontend": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["service", "port"],
+      "properties": {
+        "service": {"type": "string", "maxLength": 63, "pattern": "^[a-z0-9](?:[-a-z0-9]*[a-z0-9])?$"},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "runtimeConfig": {"type": "object", "additionalProperties": {"type": "string"}}
+      }
+    },
     "excludedRoutes": {
       "type": "array",
       "items": {

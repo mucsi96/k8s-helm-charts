@@ -42,4 +42,5 @@ jobs:
           python3 scripts/check_rust_app.py
           python3 scripts/check_forwardauth.py
           python3 scripts/check_forwardauth_login.py
+          python3 scripts/check_spa_frontend.py
           bash -n scripts/render_go_app.sh scripts/render_rust_app.sh

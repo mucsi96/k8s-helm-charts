@@ -156,4 +156,44 @@ for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     del after["spec"]["rules"][0]["filters"]
     assert before == after
 
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 13, "compatibleAppCharts": 5, "exactForwardAuthExclusions": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))
+for mode in ["api-token", "email-header", "login-gate"]:
+    values = copy.deepcopy(VALUES)
+    values["global"]["forwardAuth"].update(mode=mode, apiScope="api://hello-api/api-access" if mode == "api-token" else "")
+    values["frontend"] = {"service": "hello-client", "port": 8000, "runtimeConfig": {
+        "clientLogUrl": "https://hello.example.test/_telemetry/collect", "clientAppName": "fixture-$1-</script>",
+    }}
+    resources = render("oauth2_proxy_forwardauth", values)
+    document = resource(resources, "Middleware", "-document")["spec"]["forwardAuth"]
+    assert document["address"].endswith(":80/") and document["preserveLocationHeader"] is True
+    route = resource(resources, "HTTPRoute", "-frontend")["spec"]
+    index, assets = route["rules"]
+    assert len(index["matches"]) == 8
+    assert all(match["method"] in {"GET", "HEAD"} for match in index["matches"])
+    assert [item["type"] for item in index["filters"]] == ["ResponseHeaderModifier", "ExtensionRef", "RequestHeaderModifier", "ExtensionRef", "URLRewrite"]
+    assert index["filters"][1]["extensionRef"]["name"] == "hello-oauth2-proxy-document"
+    assert "Cookie" in index["filters"][2]["requestHeaderModifier"]["remove"]
+    assert index["filters"][2]["requestHeaderModifier"]["set"] == [{"name": "Accept-Encoding", "value": "identity"}]
+    assert index["filters"][-1]["urlRewrite"]["path"] == {"type": "ReplaceFullPath", "replaceFullPath": "/index.html"}
+    assert index["backendRefs"] == assets["backendRefs"] == [{"name": "hello-client", "port": 8000}]
+    assert assets["matches"] == [{"path": {"type": "PathPrefix", "value": "/"}}]
+    assert not any(item["type"] in {"ExtensionRef", "URLRewrite"} for item in assets["filters"])
+    middleware = resource(resources, "Middleware", "-index-config")["spec"]["plugin"]["rewritebody"]
+    replacement = middleware["rewrites"][0]["replacement"]
+    assert "</script>" not in replacement and "$$1" in replacement
+    assert json.loads(replacement.replace("$$", "$")) == values["frontend"]["runtimeConfig"]
+    values["frontend"]["runtimeConfig"] = {}
+    no_config = render("oauth2_proxy_forwardauth", values)
+    assert not any(item["kind"] == "Middleware" and item["metadata"]["name"].endswith("-index-config") for item in no_config)
+
+for invalid in [{"port": 8000}, {"service": "bad.example", "port": 8000}, {"service": "client", "port": 0}, {"service": "client", "port": 8000, "runtimeConfig": {"bad": {"nested": True}}}]:
+    values = copy.deepcopy(VALUES)
+    values["frontend"] = invalid
+    render("oauth2_proxy_forwardauth", values, success=False)
+
+values = {"image": "example/client:1", "host": "hello.example.test", "route": {"enabled": False}, "healthPath": "/index.html"}
+resources = render("client_app", values)
+assert not any(item["kind"] == "HTTPRoute" for item in resources)
+container = resource(resources, "Deployment", "hello-oauth2-proxy")["spec"]["template"]["spec"]["containers"][0]
+assert all(container[probe]["httpGet"]["path"].startswith("/index.html?") for probe in ["startupProbe", "readinessProbe", "livenessProbe"])
+
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": 17, "compatibleAppCharts": 5, "exactForwardAuthExclusions": True, "gatewaySpaFrontend": True, "apiModeCustomResources": 1, "documentModeCustomResources": 2}))
