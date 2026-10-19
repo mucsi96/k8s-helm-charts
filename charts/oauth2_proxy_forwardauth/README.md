@@ -41,28 +41,14 @@ retains profile enrichment for services that use the actual email claim.
 The cookie defaults to `__Host-<release>`, Secure, HttpOnly and SameSite=Lax.
 Default refresh/expiry are `5m`/`168h`; refresh must be below access-token lifetime.
 
-Install the auth release through platform Terraform. It publishes non-secret JSON
-HTTPRoute filter lists in `<auth-release>-route-filters`. `api-token` mode emits
-only `api` by default; `documentAuth: true` also publishes `document`.
-`email-header` and `login-gate`
-also emit `document`, allowing Terraform-owned services such as Grafana to
-protect both their UI and API routes.
+Install this proxy release through platform Terraform. It provides the Service,
+login/session configuration and narrow public OAuth routes. It creates no
+application authentication Middleware or policy ConfigMap.
 
-The ForwardAuth Terraform module reads those policies. App modules pass its
-consumed output to `setup_app_base`, which publishes `forward-auth-config` in
-the app's Azure Key Vault with scoped deployment read permission. Deploy jobs
-read AKV and pass the API list to the backend chart's generic `routeFilters` value:
-
-```bash
-AUTH_CONFIG=$(az keyvault secret show --vault-name p07-hello --name forward-auth-config --query value -o tsv)
-API_FILTERS=$(jq -ce '.route_filters.api' <<<"$AUTH_CONFIG")
-helm upgrade hello-server mucsi96/spring-app --set-json routeFilters="$API_FILTERS" # plus app values
-```
-
-Each policy contains, in order, `RequestHeaderModifier` (remove untrusted identity),
-one `ExtensionRef` (authenticate), and `ResponseHeaderModifier` (cache/header
-policy). OAuth and excluded routes use standard response-header filters directly.
-The chart creates no custom Headers or Chain resources.
+Client and API charts receive the proxy Service, port, cookie name and mode via
+their `auth` value and create their own middleware and filters. Terraform can
+publish that non-secret reference in app Key Vault; no policy readback is needed.
+See [application authentication and upgrade order](../../docs/application-auth.md).
 
 For protected service UIs, the document authenticator starts login through a
 static-202 upstream. The API authenticator uses internal `/oauth2/auth` and
@@ -78,19 +64,18 @@ Supported `mode` values:
 | `email-header` | Empty | `X-Auth-Request-Email` on both authenticators (Grafana) |
 | `login-gate` | Empty | No identity credentials |
 
-### Document authentication for client-owned SPA routes
-
-Set `documentAuth: true` to create the document authenticator/policy in
-`api-token` mode. The other modes always provide both policies. This setting
-only supplies authentication resources; the auth release has no SPA route,
-frontend Service reference or runtime configuration.
+### Client-owned SPA authentication
 
 The [client chart](../client_app/README.md) always owns its document/static
-HTTPRoute, SPA rewriting and optional inline configuration Middleware. Pass the
-published `document` policy as the client chart's `routeFilters`. Its document
-rule authenticates before rewriting the original path/query to index HTML;
-ordinary assets stay public. Pass the separate `api` policy to the server chart.
-Both charts and the auth release must use the same application namespace.
+HTTPRoute, document auth Middleware, SPA rewriting and optional inline config.
+It calls the proxy's `/` endpoint before rewriting the original path/query;
+ordinary assets stay public. API charts create their own `/oauth2/auth` check.
+Both charts and the proxy Service must use the same application namespace.
+
+**Upgrading an existing release:** first deploy app-owned middleware using the
+proxy reference and clear old policy filters. Only then upgrade this release,
+which removes the previous proxy-owned middleware/ConfigMap. Old apps must keep
+their compatible proxy chart until their routes are converted.
 
 The client chart owns public `runtimeConfig` and the index marker, including the
 pinned body-plugin requirement. Logging Terraform owns the exact same-origin

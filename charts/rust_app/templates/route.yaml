@@ -17,9 +17,23 @@ spec:
         - path:
             type: PathPrefix
             value: {{ .Values.basePath | quote }}
-      {{- with .Values.routeFilters }}
+      {{- if ne .Values.auth nil }}
       filters:
-        {{- toYaml . | nindent 8 }}
+        - type: ResponseHeaderModifier
+          responseHeaderModifier:
+            set: [{name: Cache-Control, value: no-store}]
+            remove: [Authorization, X-Auth-Request-Access-Token]
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Authorization, X-Auth-Request-Email, X-Auth-Request-Access-Token, X-Auth-Request-User, X-Forwarded-User, X-Forwarded-Email]
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: {{ .Release.Name }}-auth
+      {{- else if .Values.routeFilters }}
+      filters:
+        {{- toYaml .Values.routeFilters | nindent 8 }}
       {{- end }}
       backendRefs:
         - name: {{ .Release.Name }}

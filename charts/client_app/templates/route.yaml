@@ -84,6 +84,16 @@ spec:
             {{- end }}
             {{- end }}
             remove: {{ $removes | toJson }}
+      {{- if ne .Values.auth nil }}
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove: [Authorization, X-Auth-Request-Email, X-Auth-Request-Access-Token, X-Auth-Request-User, X-Forwarded-User, X-Forwarded-Email]
+        - type: ExtensionRef
+          extensionRef:
+            group: traefik.io
+            kind: Middleware
+            name: {{ .Release.Name }}-auth
+      {{- end }}
       {{- range .Values.routeFilters }}
       {{- if ne .type "ResponseHeaderModifier" }}
         - {{ toYaml . | nindent 10 | trim }}

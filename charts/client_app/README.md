@@ -19,7 +19,8 @@ helm install my-client-app mucsi96/client-app
 | `appPort` | Port the application listens on | `8000` |
 | `basePath` | Browser URL prefix and origin file prefix | `/` |
 | `healthPath` | Static origin path used by startup/readiness/liveness probes | `/` |
-| `routeFilters` | Standard auth/header filters applied to document requests | `[]` |
+| `auth` | Same-namespace proxy reference; creates client-owned document authentication | `null` |
+| `routeFilters` | Manual document filters when `auth` is null | `[]` |
 | `runtimeConfig` | Public string-valued JSON injected into index HTML | `{}` |
 | `gateway` | Parent Gateway name, namespace and listener section | `traefik`, `traefik`, `websecure` |
 | `resources.requests.memory` | Memory request | `20Mi` |
@@ -39,17 +40,28 @@ The static catchall does not perform document authentication or index rewriting.
 More-specific API, OAuth and telemetry routes keep their own policy. Both static
 origin paths strip app cookies, bearer and identity headers before the backend.
 
-Authentication is optional. For ForwardAuth, enable `documentAuth` on the auth
-chart and pass its published `document` policy as `routeFilters`. The client
-chart accepts RequestHeaderModifier, ResponseHeaderModifier and ExtensionRef
-filters. It combines response header settings into a single outer filter,
-enforces credential/validator stripping and no-store document caching, and runs
-auth before URL rewriting. Backend request filters strip origin credentials
-only after authentication, avoiding duplicate filter types in a rule.
+Authentication is optional. Supply the proxy reference directly:
 
-The auth release supplies only auth middleware and policies. It does not own
-this HTTPRoute, SPA fallback or frontend configuration. With no `routeFilters`,
-the same SPA routes work without an auth release.
+```yaml
+auth:
+  proxyService: hello-oauth2-proxy
+  proxyPort: 80
+  cookieName: __Host-hello-oauth2-proxy
+  mode: api-token
+```
+
+The client chart creates `<client-release>-auth` and its own header/auth filters.
+It calls the proxy's internal `/` endpoint to start login before URL rewriting.
+It forwards no identity credentials to the static server. Backend request filters
+strip cookies only after authentication, avoiding duplicate rule filters.
+The cookie name must match the proxy so refresh/clear cookies propagate correctly.
+`proxyPort` defaults to 80; `mode` defaults to api-token and may also be
+email-header or login-gate. Static document checks forward no identity in any mode.
+
+The platform release supplies the proxy, credentials and login routes, not app
+middleware or policy lists. With `auth: null`, the same SPA routes work publicly.
+For manual configurations, `routeFilters` remains available; do not combine it
+with `auth`. See [application authentication](../../docs/application-auth.md).
 
 ### React path-based routing, including nested routes
 

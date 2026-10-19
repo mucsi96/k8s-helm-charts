@@ -1,5 +1,6 @@
 """Static-only origin and telemetry sink for the shared Gateway regression."""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import base64
 import json
 import os
 
@@ -45,7 +46,14 @@ class Handler(BaseHTTPRequestHandler):
         elif path in ASSETS:
             self.respond(200, b'console.log("fixture asset");', 'application/javascript')
         elif path == '/api/data':
-            self.respond(200, json.dumps({'verifiedBearer': self.headers.get('Authorization', '').startswith('Bearer ')}).encode(), 'application/json')
+            # Inspect forwarding only; real app tests verify JWT signatures/roles.
+            token = self.headers.get('Authorization', '').removeprefix('Bearer ')
+            try:
+                payload = token.split('.')[1]
+                audience = json.loads(base64.urlsafe_b64decode(payload + '=' * (-len(payload) % 4)))['aud']
+            except (IndexError, ValueError, KeyError):
+                audience = None
+            self.respond(200, json.dumps({'bearerAudience': audience}).encode(), 'application/json')
         elif path == '/health':
             self.respond(200, b'up', 'text/plain')
         else:

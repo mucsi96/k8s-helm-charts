@@ -3,7 +3,6 @@
   "type": "object",
   "required": ["global", "oauth2-proxy"],
   "properties": {
-    "documentAuth": {"type": "boolean"},
     "excludedRoutes": {
       "type": "array",
       "items": {

@@ -64,18 +64,19 @@ routeFilters:
           value: no-store
 ```
 
-For stock ForwardAuth, use the ordered API policy from the platform auth chart:
+For stock ForwardAuth, supply the proxy reference:
 
 ```bash
-API_FILTERS=$(kubectl -n my-app get configmap my-app-oauth2-proxy-route-filters -o jsonpath='{.data.api}')
-helm upgrade my-go-app mucsi96/go-app --set-json routeFilters="$API_FILTERS" # plus app values
+helm upgrade my-go-app mucsi96/go-app \
+  --set auth.proxyService=my-app-oauth2-proxy \
+  --set auth.cookieName=__Host-my-app-oauth2-proxy # plus app values
 ```
 
-The policy strips untrusted identity headers, runs the auth ExtensionRef, and
-applies standard response-header controls. Without filters the rendered route is
-unchanged. The Go API still validates its JWT audience/scopes/roles and protects
-cookie-authenticated mutations against CSRF. The render example and shared
-ForwardAuth checks cover Go filters explicitly.
+The Go chart creates its own Middleware, strips untrusted identity before the
+API auth check and protects response headers. `auth: null` keeps routing public.
+Do not combine `auth` and manual filters. The API still validates JWTs/roles and
+protects cookie-authenticated mutations against CSRF. See
+[application authentication](../../docs/application-auth.md) for modes and upgrade order.
 
 ## Migrating from spring-app
 

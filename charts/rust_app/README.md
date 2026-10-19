@@ -75,18 +75,20 @@ routeFilters:
           value: no-store
 ```
 
-For ForwardAuth, consume the document/API filter list published by the auth chart:
+For ForwardAuth, provide a same-namespace proxy reference:
 
 ```bash
-API_FILTERS=$(kubectl -n my-app get configmap my-app-oauth2-proxy-route-filters -o jsonpath='{.data.api}')
-helm upgrade my-rust-app mucsi96/rust-app --set-json routeFilters="$API_FILTERS" # plus app values
+helm upgrade my-rust-app mucsi96/rust-app \
+  --set auth.proxyService=my-app-oauth2-proxy \
+  --set auth.cookieName=__Host-my-app-oauth2-proxy # plus app values
 ```
 
-These policies include standard identity/header modifiers and the one required
-authentication ExtensionRef. Use the API policy for a JWT-protected API prefix;
-a full UI/server such as Observatory uses the appropriate document/login-gate
-policy. Empty filters preserve ordinary direct Service routing. App-specific
-authorization and mutation Origin/CSRF protection remain application contracts.
+The Rust chart owns the API authentication Middleware and header/cache filters.
+`auth: null` leaves direct Service routing. Use a client chart for static UI
+document authentication; this chart calls `/oauth2/auth` and returns 401/403.
+Do not combine `auth` and manual `routeFilters`. See
+[application authentication](../../docs/application-auth.md) for modes and upgrade
+order. Backend authorization and CSRF protection remain application contracts.
 
 ## Existing Kubernetes service accounts and configuration
 

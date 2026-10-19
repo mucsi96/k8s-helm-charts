@@ -48,7 +48,6 @@ def main():
         'global': {'forwardAuth': {'host': 'localhost', 'issuerURL': 'https://issuer.example.test/default',
                                   'credentialsSecret': 'fixture-oidc', 'mode': 'api-token',
                                   'apiScope': 'api://fixture-api/api-access', 'trustedProxyCIDRs': ['127.0.0.1/32']}},
-        'documentAuth': True,
         'gateway': {'name': 'fixture', 'namespace': 'default', 'sectionName': 'web'},
         'oauth2-proxy': {'sessionStorage': {'redis': {'existingSecret': 'fixture-redis', 'standalone': {'connectionUrl': 'redis://127.0.0.1:6379'}}}},
     }
@@ -59,18 +58,26 @@ def main():
     client_values = {
         'image': 'example/static-origin:1', 'host': 'localhost', 'appPort': origin_port,
         'gateway': values['gateway'], 'runtimeConfig': runtime,
-        'routeFilters': json.loads(get('ConfigMap', '-route-filters')['data']['document']),
+        'auth': {'proxyService': get('Service', 'oauth2-proxy')['metadata']['name'], 'proxyPort': 80, 'cookieName': '__Host-fixture'},
     }
     prefixed_runtime = {**runtime, 'clientAppName': 'prefixed-fixture'}
     client_resources = []
     for release, configuration in [
         ('static-origin', client_values),
-        ('prefixed-origin', {**client_values, 'basePath': '/portal', 'routeFilters': [], 'runtimeConfig': prefixed_runtime}),
+        ('prefixed-origin', {**client_values, 'basePath': '/portal', 'auth': None, 'runtimeConfig': prefixed_runtime}),
     ]:
         rendered_client = subprocess.run(['helm', 'template', release, str(ROOT / 'charts/client_app'), '-f', '-'],
                                          input=yaml.safe_dump(configuration), capture_output=True, text=True, check=True)
         client_resources.extend(item for item in yaml.safe_load_all(rendered_client.stdout) if item)
     assert not any(item['kind'] == 'HTTPRoute' and item['metadata']['name'].endswith('-frontend') for item in resources)
+    rendered_api = subprocess.run(['helm', 'template', 'api-origin', str(ROOT / 'charts/spring_app'), '-f', '-'],
+                                 input=yaml.safe_dump({'image': 'example/api:1', 'host': 'localhost', 'appPort': origin_port,
+                                                      'basePath': '/api', 'clientId': 'fixture-api', 'auth': client_values['auth']}),
+                                 capture_output=True, text=True, check=True)
+    api_resources = [item for item in yaml.safe_load_all(rendered_api.stdout) if item and item['kind'] in {'HTTPRoute', 'Middleware'}]
+    for item in api_resources:
+        if item['kind'] == 'HTTPRoute':
+            item['spec']['parentRefs'] = [{'name': 'fixture'}]
     alpha = yaml.safe_load(base64.b64decode(get('Secret', '-alpha')['data']['oauth2_proxy.yml']))
     alpha['server'] = {'bindAddress': f'0.0.0.0:{proxy_port}'}
     provider = alpha['providers'][0]
@@ -80,7 +87,7 @@ def main():
     legacy.update(cookie_secure=False, cookie_name='edge-fixture', redirect_url=f'{public}/oauth2/callback',
                   whitelist_domains=['localhost:*'], session_store_type='redis', redis_connection_url='redis://127.0.0.1:6379',
                   cookie_secret=base64.b64encode(b'0123456789abcdef0123456789abcdef').decode())
-    kubernetes = copy.deepcopy([item for item in [*resources, *client_resources] if item['kind'] in {'HTTPRoute', 'Middleware'}])
+    kubernetes = copy.deepcopy([item for item in [*resources, *client_resources, *api_resources] if item['kind'] in {'HTTPRoute', 'Middleware'}])
     for item in kubernetes:
         if item['kind'] == 'Middleware' and 'forwardAuth' in item['spec']:
             auth = item['spec']['forwardAuth']
@@ -92,12 +99,6 @@ def main():
          'spec': {'controllerName': 'traefik.io/gateway-controller'}},
         {'apiVersion': 'gateway.networking.k8s.io/v1', 'kind': 'Gateway', 'metadata': {'name': 'fixture', 'namespace': 'default'},
          'spec': {'gatewayClassName': 'traefik', 'listeners': [{'name': 'web', 'protocol': 'HTTP', 'port': gateway_port}]}},
-        {'apiVersion': 'gateway.networking.k8s.io/v1', 'kind': 'HTTPRoute', 'metadata': {'name': 'api', 'namespace': 'default'},
-         'spec': {'parentRefs': [{'name': 'fixture'}], 'hostnames': ['localhost'], 'rules': [{
-             'matches': [{'path': {'type': 'PathPrefix', 'value': '/api'}}],
-             'filters': json.loads(get('ConfigMap', '-route-filters')['data']['api']),
-             'backendRefs': [{'name': 'static-origin', 'port': origin_port}],
-         }]}},
         {'apiVersion': 'gateway.networking.k8s.io/v1', 'kind': 'HTTPRoute', 'metadata': {'name': 'telemetry', 'namespace': 'default'},
          'spec': {'parentRefs': [{'name': 'fixture'}], 'hostnames': ['localhost'], 'rules': [{
              'matches': [{'path': {'type': 'Exact', 'value': '/_telemetry/collect'}, 'method': 'POST'}],
@@ -108,7 +109,7 @@ def main():
              'backendRefs': [{'name': 'static-origin', 'port': origin_port}],
          }]}},
     ])
-    for service, port, target in [('static-origin', origin_port, origin_port), ('prefixed-origin', origin_port, origin_port),
+    for service, port, target in [('static-origin', origin_port, origin_port), ('prefixed-origin', origin_port, origin_port), ('api-origin', origin_port, origin_port),
                                   (get('Service', 'oauth2-proxy')['metadata']['name'], 80, proxy_port)]:
         kubernetes.extend([
             {'apiVersion': 'v1', 'kind': 'Service', 'metadata': {'name': service, 'namespace': 'default'},
@@ -186,6 +187,9 @@ def main():
             assert fetch(f'{public}/main.js', headers={'Cookie': 'private=secret', 'Authorization': 'Bearer forged'})[0] == 200
             assert fetch(f'{public}/missing.js')[0] == 404
             assert fetch(f'{public}/api/data')[0] == 401
+            status, headers, _, _ = fetch(f'{public}/api/data', headers={'Authorization': 'Bearer forged', 'X-Auth-Request-Email': 'forged@example.test'}, follow=False)
+            assert status == 401 and headers.get('Location') is None
+            assert headers.get('Cache-Control') == 'no-store' and headers.get('Authorization') is None
             assert fetch(f'{public}/api/data', headers={'Accept': 'text/html'}, follow=False)[0] == 401
             assert fetch(f'{public}/oauth2/staticevil')[0] == 404
             nested_path = '/teams/acme/projects/42/settings/members'
@@ -230,7 +234,9 @@ def main():
             assert status == 200 and '__APP_CONFIG_JSON__' not in body.decode(), 'Conditional/range request bypassed config injection'
             status, headers, body, _ = fetch(target, cookies, {'Sec-Fetch-Dest': 'document'}, method='HEAD')
             assert status == 200 and not body and 'no-store' in headers.get('Cache-Control', '')
-            assert json.loads(fetch(f'{public}/api/data', cookies)[2])['verifiedBearer'] is True
+            status, headers, body, _ = fetch(f'{public}/api/data', cookies, {'Authorization': 'Bearer forged'})
+            assert status == 200 and json.loads(body)['bearerAudience'] == 'fixture-api'
+            assert headers.get('Authorization') is None and headers.get('Cache-Control') == 'no-store'
             assert fetch(f'{public}/oauth2/auth', cookies)[0] == 404
             assert fetch(f'{public}/_telemetry/collect', cookies, {'Content-Type': 'application/json', 'Authorization': 'Bearer forged', 'X-XSRF-TOKEN': 'private'}, b'{}')[0] == 202
             records = json.loads(fetch(f'http://localhost:{origin_port}/requests')[2])
