@@ -2,6 +2,9 @@
 {{- define "p07.auth.middleware" -}}
 {{- $root := .root -}}
 {{- $target := .target -}}
+{{- if $root.Values.routeFilters -}}
+{{- fail "routeFilters has been removed; configure auth with the proxy reference instead" -}}
+{{- end -}}
 {{- if ne $root.Values.auth nil -}}
 {{- $auth := $root.Values.auth -}}
 {{- $service := required "auth.proxyService is required" $auth.proxyService -}}
@@ -20,7 +23,7 @@
 {{- if not (has $mode (list "api-token" "email-header" "login-gate")) -}}
 {{- fail "auth.mode must match a supported proxy mode" -}}
 {{- end -}}
-{{- if $root.Values.routeFilters -}}{{- fail "Use auth or routeFilters, not both" -}}{{- end }}
+{{- /* End validation before emitting the app-owned resource. */}}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware
 metadata:

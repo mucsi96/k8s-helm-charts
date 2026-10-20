@@ -2,7 +2,7 @@
 
 Deploys native Rust HTTP services, including distroless Axum-style applications.
 Uses the same release/Service/Secret/PVC naming conventions and standard Gateway
-API `routeFilters` as `go-app`. Azure Workload Identity is optional; Kubernetes
+API authentication contract as `go-app`. Azure Workload Identity is optional; Kubernetes
 service-account reuse is supported without creating RBAC permissions.
 
 ```bash
@@ -37,7 +37,7 @@ can use Kubernetes-native hooks if the cluster supports them.
 | `host` | HTTPRoute hostname | Required |
 | `appPort` | Container/Service HTTP port and `LISTEN_ADDR` port | `8080` |
 | `basePath` | HTTPRoute prefix and `BASE_PATH` | `/` |
-| `routeFilters` | Ordered Gateway API HTTPRoute filters | `[]` |
+| `auth` | Proxy reference; chart owns API authentication and header policies | `null` |
 | `replicaCount` | Deployment replicas | `1` |
 | `imagePullSecrets` | Existing registry credential references | `[]` |
 | `serviceAccountName` | Service account name | Release name |
@@ -64,16 +64,9 @@ when chart-managed values change. Existing `envFrom`/volume data needs an explic
 rollout (for example a `podAnnotations` checksum managed by the deploy job).
 Prefer existing Secret references for externally provisioned credentials.
 
-## Standard routing filters and ForwardAuth
+## API routing and ForwardAuth
 
-```yaml
-routeFilters:
-  - type: ResponseHeaderModifier
-    responseHeaderModifier:
-      set:
-        - name: Cache-Control
-          value: no-store
-```
+The chart generates its route filters from the `auth` proxy reference.
 
 For ForwardAuth, provide a same-namespace proxy reference:
 
@@ -85,7 +78,7 @@ helm upgrade my-rust-app mucsi96/rust-app \
 The Rust chart owns the API authentication Middleware and header/cache filters.
 `auth: null` leaves direct Service routing. Use a client chart for static UI
 document authentication; this chart calls `/oauth2/auth` and returns 401/403.
-Do not combine `auth` and manual `routeFilters`. See
+Manual filter lists are not supported. See
 [application authentication](../../docs/application-auth.md) for modes and upgrade
 order. Backend authorization and CSRF protection remain application contracts.
 

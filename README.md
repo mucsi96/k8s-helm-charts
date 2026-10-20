@@ -221,7 +221,7 @@ Spring-to-Go migration guide. The existing release workflow publishes it as
 ## rust_app
 
 Deploys native Rust HTTP services with `LISTEN_ADDR`, configurable `/healthz`
-probes, standard Gateway API `routeFilters`, optional Azure Workload Identity,
+probes, app-owned Gateway API authentication, optional Azure Workload Identity,
 existing service-account/configuration reuse and persistent storage. No shell
 or JVM is required in the runtime image.
 
@@ -230,16 +230,12 @@ image: ghcr.io/example/rust-api:1
 host: rust.example.com
 env:
   RUST_LOG: info
-routeFilters:
-  - type: ResponseHeaderModifier
-    responseHeaderModifier:
-      set:
-        - name: Cache-Control
-          value: no-store
+auth:
+  proxyService: rust-oauth2-proxy
 ```
 
 See [Rust App Helm Chart](charts/rust_app/README.md) for identity, configuration,
-PVC, filter and Observatory-style adoption examples. The release workflow
+PVC, authentication and Observatory-style adoption examples. The release workflow
 publishes `mucsi96/rust-app` using the `rust-app` version prefix.
 
 ---
@@ -380,9 +376,8 @@ Charts include:
 - Attaches to the shared `traefik` Gateway (`websecure` listener)
 - Client and API charts own their authentication middleware/policies using an
   optional `auth` proxy reference; see [application authentication](docs/application-auth.md).
-- App charts accept standard Gateway API `routeFilters: []`; the default empty
-  list preserves existing routing. Header/cache policies use standard filters;
-  only external authentication requires a controller-specific ExtensionRef.
+- App charts generate standard header/cache filters and the required auth
+  ExtensionRef themselves. Callers configure `auth` rather than manual filters.
 
 ### Resource Management
 

@@ -1,6 +1,5 @@
 appPort: 8080
 basePath: /
-routeFilters: []
 auth: null
 replicaCount: 1
 imagePullSecrets: []

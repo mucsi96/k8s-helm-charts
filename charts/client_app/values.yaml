@@ -1,6 +1,5 @@
 appPort: 8000
 healthPath: /
-routeFilters: []
 auth: null
 runtimeConfig: {}
 gateway:

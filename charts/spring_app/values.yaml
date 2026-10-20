@@ -1,5 +1,4 @@
 appPort: 8080
-routeFilters: []
 auth: null
 springActuatorPort: 8082
 persistentVolumeClaims: []

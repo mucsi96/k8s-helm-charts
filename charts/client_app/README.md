@@ -22,7 +22,6 @@ at the repository root first. Published charts already bundle the shared library
 | `appPort` | Port the application listens on | `8000` |
 | `healthPath` | Static origin path used by startup/readiness/liveness probes | `/` |
 | `auth` | Same-namespace proxy reference; creates client-owned document authentication | `null` |
-| `routeFilters` | Manual document filters when `auth` is null | `[]` |
 | `runtimeConfig` | Public string-valued JSON injected into index HTML | `{}` |
 | `gateway` | Parent Gateway name, namespace and listener section | `traefik`, `traefik`, `websecure` |
 | `resources.requests.memory` | Memory request | `20Mi` |
@@ -62,8 +61,8 @@ email-header or login-gate. Static document checks forward no identity in any mo
 
 The platform release supplies the proxy, credentials and login routes, not app
 middleware or policy lists. With `auth: null`, the same SPA routes work publicly.
-For manual configurations, `routeFilters` remains available; do not combine it
-with `auth`. See [application authentication](../../docs/application-auth.md).
+The chart owns header/cache policies; callers do not supply manual filter lists.
+See [application authentication](../../docs/application-auth.md).
 
 ### React path-based routing, including nested routes
 

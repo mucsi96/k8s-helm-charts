@@ -8,9 +8,10 @@ release still owns the resources produced by these helpers.
   document/API endpoints and mode-specific identity forwarding.
 - `p07.auth.requestFilters`: caller identity stripping and middleware reference.
 - `p07.auth.apiFilters`: API cache/header policy plus the request filters.
-- `p07.api.route`: common backend HTTPRoute, including optional/manual auth.
+- `p07.api.route`: common backend HTTPRoute, with optional proxy-based auth.
 
-The client keeps its specialized SPA/config route and reuses authentication
+Nonempty legacy filter lists are rejected; charts own the policies instead of
+accepting caller-authored Gateway filters. The client keeps its specialized SPA/config route and reuses authentication
 helpers. Runtime-specific Deployment/Service/probe templates remain in each chart.
 
 ## Dependencies and releases

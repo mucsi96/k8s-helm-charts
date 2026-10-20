@@ -44,8 +44,10 @@ mandatory for API-token applications. Do not expose the private auth endpoints.
 The proxy release owns only its exact public OAuth/control/asset routes and any
 configured exact session-gate exclusions.
 
-`routeFilters` remains an escape hatch for manual/legacy routes when `auth` is
-null. Setting both is rejected, preventing ambiguous order or repeated filters.
+There is one authentication input: `auth`. The charts own their header/cache
+policies; there is no manual filter-list option. A nonempty legacy `routeFilters`
+value fails rendering even with `auth: null`, so an old authentication policy
+cannot be silently ignored and expose a route.
 Platform-managed service UIs outside these charts must own equivalent document
 middleware themselves; backend charts intentionally perform API checks.
 
@@ -53,7 +55,9 @@ middleware themselves; backend charts intentionally perform API checks.
 
 This proxy-chart update removes its old application Middleware and policy
 ConfigMap. Before upgrading an existing proxy release, deploy every consuming
-client/API chart with `auth` and clear its old `routeFilters`. First configure the
+client/API chart with `auth` and discard old Helm values containing `routeFilters`
+(for example, `--reset-values` while supplying the complete intended app values).
+First configure the
 existing chart-5 proxy with `global.forwardAuth.cookieName: __Host-session`.
 Its Service/endpoints remain the same; changing the name starts a new login
 session. The pending Terraform module supplies this value for the staged cutover.

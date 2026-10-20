@@ -57,12 +57,12 @@ def main():
             with tarfile.open(package) as archive:
                 assert any('/charts/app-common/templates/' in item.name for item in archive), 'Published chart must bundle its shared templates'
             values = {'image': 'example/app:1', 'host': 'app.example.test', 'clientId': 'fixture', 'serviceAccountName': 'fixture'}
-            variants = [values, {**values, 'routeFilters': [{'type': 'ResponseHeaderModifier', 'responseHeaderModifier': {'set': [{'name': 'X-App', 'value': 'fixture'}]}}]}]
+            variants = [values]
             variants.extend({**values, 'auth': {'proxyService': 'fixture-proxy', 'mode': mode}} for mode in ['api-token', 'email-header', 'login-gate'])
             if name == 'client_app':
-                variants.append({**variants[2], 'runtimeConfig': {'clientAppName': 'fixture', 'clientLogUrl': 'https://app.example.test/_telemetry/collect'}})
+                variants.append({**variants[1], 'runtimeConfig': {'clientAppName': 'fixture', 'clientLogUrl': 'https://app.example.test/_telemetry/collect'}})
             else:
-                variants.append({**variants[2], 'basePath': '/api/v1', 'appPort': 8090})
+                variants.append({**variants[1], 'basePath': '/api/v1', 'appPort': 8090})
             for variant in variants:
                 rendered = render(chart, variant)
                 assert render(package, variant) == rendered, f'{name}: packaged chart changed behavior'

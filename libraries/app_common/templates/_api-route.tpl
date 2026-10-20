@@ -21,9 +21,6 @@ spec:
       {{- if ne .Values.auth nil }}
       filters:
         {{- include "p07.auth.apiFilters" . | nindent 8 }}
-      {{- else if .Values.routeFilters }}
-      filters:
-        {{- toYaml .Values.routeFilters | nindent 8 }}
       {{- end }}
       backendRefs:
         - name: {{ .Release.Name }}
