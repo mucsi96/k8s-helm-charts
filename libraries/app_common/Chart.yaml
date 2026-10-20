@@ -1,0 +1,5 @@
+apiVersion: v2
+name: app-common
+description: Shared application authentication and API routing templates
+type: library
+version: 1.0.0

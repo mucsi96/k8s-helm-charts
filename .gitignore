@@ -1,5 +1,5 @@
 .kube/
 out/
-charts/oauth2_proxy_forwardauth/charts/
+charts/*/charts/
 scripts/databases_config.json
 __pycache__/

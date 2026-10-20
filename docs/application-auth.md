@@ -1,5 +1,9 @@
 # Application-owned authentication
 
+Implementation is shared through the `app-common` Helm library: auth validation,
+Middleware, header policies and the backend HTTPRoute have one source. The
+library is bundled in each app package and does not change resource ownership.
+
 The platform owns oauth2-proxy and login configuration. Each client/API chart
 owns the Middleware and HTTPRoute policies that use it. Deployment supplies a
 small non-secret proxy reference, not generated Gateway filters:

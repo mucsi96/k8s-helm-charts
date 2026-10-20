@@ -124,6 +124,7 @@ does not change application registrations, permissions or data schemas.
 ## Local validation
 
 ```bash
+python3 scripts/build_app_dependencies.py
 helm lint charts/rust_app --set image=example/rust-app:1 --set host=rust.example.com
 python3 scripts/check_rust_app.py
 python3 scripts/check_forwardauth.py

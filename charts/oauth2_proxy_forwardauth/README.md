@@ -147,6 +147,7 @@ manifest before module publication.
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
 helm dependency build charts/oauth2_proxy_forwardauth
+python3 scripts/build_app_dependencies.py
 python3 scripts/check_forwardauth.py
 python3 scripts/check_forwardauth_login.py
 python3 scripts/check_spa_frontend.py

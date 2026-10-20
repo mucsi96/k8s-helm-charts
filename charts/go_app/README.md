@@ -98,6 +98,7 @@ and the workload identity service account retain their existing resource names.
 ## Local validation
 
 ```bash
+python3 scripts/build_app_dependencies.py
 helm lint charts/go_app --set image=example/go-app:1 \
   --set host=api.example.com --set serviceAccountName=go-app --set clientId=example
 bash scripts/render_go_app.sh

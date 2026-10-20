@@ -394,6 +394,18 @@ Charts include:
 
 ## Usage
 
+### Shared chart utilities
+
+Client, Spring, Go, Node and Rust charts use the local Helm library
+[`libraries/app_common`](libraries/app_common/README.md) for authentication
+middleware/filters. The four backend charts also share their API HTTPRoute.
+Application releases still own these resources; the library runs no workloads.
+
+After checkout, run `python3 scripts/build_app_dependencies.py` before rendering
+or linting app charts. Published packages bundle the library, so deployment needs
+no extra Helm release or repository. Library updates require a version/dependency
+bump for all consumers; CI verifies both release bookkeeping and package portability.
+
 ### Chart release versioning
 
 Charts publish major-only SemVer tags (`<chart>-N.0.0`); older releases used

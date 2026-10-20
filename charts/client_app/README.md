@@ -12,6 +12,9 @@ helm repo update
 helm install my-client-app mucsi96/client-app
 ```
 
+For source checkout development, run `python3 scripts/build_app_dependencies.py`
+at the repository root first. Published charts already bundle the shared library.
+
 ## Parameters
 
 | Parameter | Description | Default |
