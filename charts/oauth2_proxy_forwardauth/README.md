@@ -38,30 +38,19 @@ An app-API access token has the wrong audience for Graph and would otherwise tur
 an otherwise valid callback into HTTP 500. Identity comes from the verified ID
 token; API issuer/audience/scope/role checks stay authoritative. Email-header mode
 retains profile enrichment for services that use the actual email claim.
-The cookie defaults to `__Host-<release>`, Secure, HttpOnly and SameSite=Lax.
+Every app uses `__Host-session`, Secure, HttpOnly, SameSite=Lax, Path=/ and no
+Domain attribute. Host-only cookies are isolated between app hostnames even
+though their names match. Registrations and cookie secrets remain per-app.
 Default refresh/expiry are `5m`/`168h`; refresh must be below access-token lifetime.
 
-Install the auth release through platform Terraform. It publishes non-secret JSON
-HTTPRoute filter lists in `<auth-release>-route-filters`. `api-token` mode emits
-only `api`; static frontend routes remain public. `email-header` and `login-gate`
-also emit `document`, allowing Terraform-owned services such as Grafana to
-protect both their UI and API routes.
+Install this proxy release through platform Terraform. It provides the Service,
+login/session configuration and narrow public OAuth routes. It creates no
+application authentication Middleware or policy ConfigMap.
 
-The ForwardAuth Terraform module reads those policies. App modules pass its
-consumed output to `setup_app_base`, which publishes `forward-auth-config` in
-the app's Azure Key Vault with scoped deployment read permission. Deploy jobs
-read AKV and pass the API list to the backend chart's generic `routeFilters` value:
-
-```bash
-AUTH_CONFIG=$(az keyvault secret show --vault-name p07-hello --name forward-auth-config --query value -o tsv)
-API_FILTERS=$(jq -ce '.route_filters.api' <<<"$AUTH_CONFIG")
-helm upgrade hello-server mucsi96/spring-app --set-json routeFilters="$API_FILTERS" # plus app values
-```
-
-Each policy contains, in order, `RequestHeaderModifier` (remove untrusted identity),
-one `ExtensionRef` (authenticate), and `ResponseHeaderModifier` (cache/header
-policy). OAuth and excluded routes use standard response-header filters directly.
-The chart creates no custom Headers or Chain resources.
+Client and API charts receive the proxy Service, port and mode via
+their `auth` value and create their own middleware and filters. Terraform can
+publish that non-secret reference in app Key Vault; no policy readback is needed.
+See [application authentication and upgrade order](../../docs/application-auth.md).
 
 For protected service UIs, the document authenticator starts login through a
 static-202 upstream. The API authenticator uses internal `/oauth2/auth` and
@@ -77,13 +66,23 @@ Supported `mode` values:
 | `email-header` | Empty | `X-Auth-Request-Email` on both authenticators (Grafana) |
 | `login-gate` | Empty | No identity credentials |
 
-### Upgrade from 2.0.0
+### Client-owned SPA authentication
 
-Existing API-app consumers must remove document filters from their frontend
-HTTPRoutes and deploy server-driven bootstrap before upgrading this auth release.
-The upgrade removes their document Middleware/policy. Keep the existing chart
-pin during the consumer cutover, then advance it to the newly published release.
-Protected service modes retain both policies.
+The [client chart](../client_app/README.md) always owns its document/static
+HTTPRoute, document auth Middleware, SPA rewriting and optional inline config.
+It calls the proxy's `/` endpoint before rewriting the original path/query;
+ordinary assets stay public. API charts create their own `/oauth2/auth` check.
+Both charts and the proxy Service must use the same application namespace.
+
+**Upgrading an existing release:** configure the existing proxy's cookie name as
+`__Host-session`, then deploy app-owned middleware using the proxy reference and
+clear old policy filters. The name change starts a new login session. Only then upgrade this release,
+which removes the previous proxy-owned middleware/ConfigMap. Old apps must keep
+their compatible proxy chart until their routes are converted.
+
+The client chart owns public `runtimeConfig` and the index marker, including the
+pinned body-plugin requirement. Logging Terraform owns the exact same-origin
+Faro route. Authentication can be omitted without changing SPA route ownership.
 
 Every mode exposes the exact stock `/oauth2/start`, `/oauth2/callback`,
 `/oauth2/sign_in`, `/oauth2/sign_out` and `/oauth2/userinfo` control endpoints.
@@ -94,9 +93,10 @@ Never expose
 `/oauth2/auth` or the static-202 root directly: they can carry bearer credentials
 in response headers. `/userinfo` is token-free; `/sign_out` is local app logout,
 not Entra-wide logout. A protected document can immediately restart Entra SSO.
-These handlers are provided by stock oauth2-proxy. The app server's bootstrap
-response selects `/oauth2/start` when a session is needed; the generic frontend
-loader follows the redirect instruction. Entra redirects to `/oauth2/callback`,
+These handlers are provided by stock oauth2-proxy. Gateway-owned document
+authentication starts login before serving index HTML. Legacy app-owned
+bootstrap can still select `/oauth2/start` when a session is needed.
+Entra redirects to `/oauth2/callback`,
 registered by Terraform. The chart's `oauth-route.yaml` forwards those requests through
 Traefik to the proxy. The SPAs read token-free `/oauth2/userinfo` for header
 profile data, without managing OAuth, tokens or sessions. Login stays
@@ -147,14 +147,23 @@ manifest before module publication.
 ```bash
 helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
 helm dependency build charts/oauth2_proxy_forwardauth
+python3 scripts/build_app_dependencies.py
 python3 scripts/check_forwardauth.py
 python3 scripts/check_forwardauth_login.py
+python3 scripts/check_spa_frontend.py
 ```
 
 The shared login regression uses stock oauth2-proxy, Redis and the mock issuer.
 It reproduces a callback 500 when an optional claim triggers a rejecting profile
 endpoint, verifies the ID-token-only fix, and checks the stock error stylesheet.
 This platform integration test lives here rather than in each application.
+The SPA regression runs real Traefik 3.7.13 Kubernetes Gateway/CRD providers,
+the pinned body plugin, stock proxy, Redis and a static-only origin. A small
+list/watch/status API fixture supplies rendered Kubernetes resources; the test
+does not reimplement Gateway filter translation or route precedence. It checks
+route acceptance, login/deep links, injection/escaping, HEAD/conditional/range
+requests, private auth handlers and credential-free static/telemetry delivery.
+The fixture is not a Kubernetes API schema/admission validator.
 
 `global.forwardAuth` is shared with the dependency so generated legacy/alpha
 configuration has one source of truth. Configure ordinary runtime resources,
@@ -166,8 +175,9 @@ generated configuration or enable a second upstream public route.
 Gateway API v1.6.3 defines `ExternalAuth` in its experimental channel. Traefik
 v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and p07's v1.6.1
 standard-channel CRDs do not expose it. The ForwardAuth Middleware CRDs are
-therefore the remaining implementation-specific part; routing, header policies,
-Services and ConfigMaps use standard APIs.
+therefore implementation-specific. Optional inline configuration adds one
+plugin Middleware in the client chart; routing, header policies, Services and
+ConfigMaps use standard APIs.
 
 - [GEP-1494 status](https://gateway-api.sigs.k8s.io/geps/gep-1494/)
 - [Traefik v3.7.14 filter switch](https://github.com/traefik/traefik/blob/v3.7.14/pkg/provider/kubernetes/gateway/httproute.go#L406-L479)

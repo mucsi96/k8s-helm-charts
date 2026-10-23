@@ -35,7 +35,7 @@ Deploys a static frontend application using nginx, suitable for React, Vue, Angu
 
 | Parameter | Description | Example | Default |
 |-----------|-------------|---------|---------|
-| `basePath` | Base path prefix for the application | `/app` | - |
+| `auth` | Same-namespace proxy reference for document authentication | `{proxyService: my-app-oauth2-proxy}` | `null` |
 | `env` | Environment variables as key-value pairs | See example below | `{}` |
 
 ### Example values.yaml
@@ -44,11 +44,13 @@ Deploys a static frontend application using nginx, suitable for React, Vue, Angu
 image: myregistry.io/my-frontend-app:1.0.0
 appPort: 80
 host: myapp.example.com
-basePath: /dashboard
 env:
   API_URL: https://api.example.com
   FEATURE_FLAG: "true"
 ```
+
+Client apps always use `/` on their own hostname. Nested browser paths are
+internally rewritten to `/index.html`; API chart path prefixes remain configurable.
 
 ---
 
@@ -219,7 +221,7 @@ Spring-to-Go migration guide. The existing release workflow publishes it as
 ## rust_app
 
 Deploys native Rust HTTP services with `LISTEN_ADDR`, configurable `/healthz`
-probes, standard Gateway API `routeFilters`, optional Azure Workload Identity,
+probes, app-owned Gateway API authentication, optional Azure Workload Identity,
 existing service-account/configuration reuse and persistent storage. No shell
 or JVM is required in the runtime image.
 
@@ -228,16 +230,12 @@ image: ghcr.io/example/rust-api:1
 host: rust.example.com
 env:
   RUST_LOG: info
-routeFilters:
-  - type: ResponseHeaderModifier
-    responseHeaderModifier:
-      set:
-        - name: Cache-Control
-          value: no-store
+auth:
+  proxyService: rust-oauth2-proxy
 ```
 
 See [Rust App Helm Chart](charts/rust_app/README.md) for identity, configuration,
-PVC, filter and Observatory-style adoption examples. The release workflow
+PVC, authentication and Observatory-style adoption examples. The release workflow
 publishes `mucsi96/rust-app` using the `rust-app` version prefix.
 
 ---
@@ -376,9 +374,10 @@ Charts include:
 - Kubernetes Gateway API `HTTPRoute` resources
 - Support for path-based and host-based routing
 - Attaches to the shared `traefik` Gateway (`websecure` listener)
-- App charts accept standard Gateway API `routeFilters: []`; the default empty
-  list preserves existing routing. Header/cache policies use standard filters;
-  only external authentication requires a controller-specific ExtensionRef.
+- Client and API charts own their authentication middleware/policies using an
+  optional `auth` proxy reference; see [application authentication](docs/application-auth.md).
+- App charts generate standard header/cache filters and the required auth
+  ExtensionRef themselves. Callers configure `auth` rather than manual filters.
 
 ### Resource Management
 
@@ -389,6 +388,18 @@ Charts include:
 ---
 
 ## Usage
+
+### Shared chart utilities
+
+Client, Spring, Go, Node and Rust charts use the local Helm library
+[`libraries/app_common`](libraries/app_common/README.md) for authentication
+middleware/filters. The four backend charts also share their API HTTPRoute.
+Application releases still own these resources; the library runs no workloads.
+
+After checkout, run `python3 scripts/build_app_dependencies.py` before rendering
+or linting app charts. Published packages bundle the library, so deployment needs
+no extra Helm release or repository. Library updates require a version/dependency
+bump for all consumers; CI verifies both release bookkeeping and package portability.
 
 ### Chart release versioning
 

@@ -56,7 +56,7 @@ configured.update({
     "extraVolumes": [{"name": "inventory", "configMap": {"name": "external-config"}}],
     "extraVolumeMounts": [{"name": "inventory", "mountPath": "/inventory", "readOnly": True}],
     "persistentVolumeClaims": [{"name": "retained-data", "mountPath": "/data", "accessMode": "ReadWriteOnce", "storageClassName": "", "volumeName": "existing-rust-pv", "storage": "5Gi"}],
-    "routeFilters": [{"type": "ResponseHeaderModifier", "responseHeaderModifier": {"set": [{"name": "Cache-Control", "value": "no-store"}]}}],
+    "auth": {"proxyService": "demo-oauth2-proxy"},
 })
 resources = render(configured)
 pod = get(resources, "Deployment")["spec"]["template"]
@@ -75,7 +75,8 @@ assert get(resources, "PersistentVolumeClaim")["spec"]["volumeName"] == "existin
 assert {"name": "pvc-retained-data", "persistentVolumeClaim": {"claimName": "retained-data"}} in pod["spec"]["volumes"]
 route = get(resources, "HTTPRoute")["spec"]["rules"][0]
 assert route["matches"][0]["path"]["value"] == "/api"
-assert route["filters"] == configured["routeFilters"]
+assert route["filters"][0]["responseHeaderModifier"]["set"] == [{"name": "Cache-Control", "value": "no-store"}]
+assert route["filters"][2]["extensionRef"]["name"] == "demo-rust-auth"
 assert route["backendRefs"] == [{"name": "demo-rust", "port": 8090}]
 updated = copy.deepcopy(configured)
 updated["env"]["RUST_LOG"] = "debug"

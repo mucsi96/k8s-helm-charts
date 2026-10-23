@@ -30,7 +30,7 @@
             "credentialsSecret": {"type": "string", "minLength": 1},
             "mode": {"enum": ["api-token", "email-header", "login-gate"]},
             "apiScope": {"type": "string"},
-            "cookieName": {"type": "string", "pattern": "^$|^__Host-[a-zA-Z0-9_-]+$"},
+            "cookieName": {"const": "__Host-session"},
             "cookieRefresh": {"type": "string", "pattern": "^[1-9][0-9]*(s|m|h)$"},
             "cookieExpire": {"type": "string", "pattern": "^[1-9][0-9]*(s|m|h)$"},
             "trustedProxyCIDRs": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 3}}

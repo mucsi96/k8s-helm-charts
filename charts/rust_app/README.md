@@ -2,7 +2,7 @@
 
 Deploys native Rust HTTP services, including distroless Axum-style applications.
 Uses the same release/Service/Secret/PVC naming conventions and standard Gateway
-API `routeFilters` as `go-app`. Azure Workload Identity is optional; Kubernetes
+API authentication contract as `go-app`. Azure Workload Identity is optional; Kubernetes
 service-account reuse is supported without creating RBAC permissions.
 
 ```bash
@@ -37,7 +37,7 @@ can use Kubernetes-native hooks if the cluster supports them.
 | `host` | HTTPRoute hostname | Required |
 | `appPort` | Container/Service HTTP port and `LISTEN_ADDR` port | `8080` |
 | `basePath` | HTTPRoute prefix and `BASE_PATH` | `/` |
-| `routeFilters` | Ordered Gateway API HTTPRoute filters | `[]` |
+| `auth` | Proxy reference; chart owns API authentication and header policies | `null` |
 | `replicaCount` | Deployment replicas | `1` |
 | `imagePullSecrets` | Existing registry credential references | `[]` |
 | `serviceAccountName` | Service account name | Release name |
@@ -64,29 +64,23 @@ when chart-managed values change. Existing `envFrom`/volume data needs an explic
 rollout (for example a `podAnnotations` checksum managed by the deploy job).
 Prefer existing Secret references for externally provisioned credentials.
 
-## Standard routing filters and ForwardAuth
+## API routing and ForwardAuth
 
-```yaml
-routeFilters:
-  - type: ResponseHeaderModifier
-    responseHeaderModifier:
-      set:
-        - name: Cache-Control
-          value: no-store
-```
+The chart generates its route filters from the `auth` proxy reference.
 
-For ForwardAuth, consume the document/API filter list published by the auth chart:
+For ForwardAuth, provide a same-namespace proxy reference:
 
 ```bash
-API_FILTERS=$(kubectl -n my-app get configmap my-app-oauth2-proxy-route-filters -o jsonpath='{.data.api}')
-helm upgrade my-rust-app mucsi96/rust-app --set-json routeFilters="$API_FILTERS" # plus app values
+helm upgrade my-rust-app mucsi96/rust-app \
+  --set auth.proxyService=my-app-oauth2-proxy # plus app values
 ```
 
-These policies include standard identity/header modifiers and the one required
-authentication ExtensionRef. Use the API policy for a JWT-protected API prefix;
-a full UI/server such as Observatory uses the appropriate document/login-gate
-policy. Empty filters preserve ordinary direct Service routing. App-specific
-authorization and mutation Origin/CSRF protection remain application contracts.
+The Rust chart owns the API authentication Middleware and header/cache filters.
+`auth: null` leaves direct Service routing. Use a client chart for static UI
+document authentication; this chart calls `/oauth2/auth` and returns 401/403.
+Manual filter lists are not supported. See
+[application authentication](../../docs/application-auth.md) for modes and upgrade
+order. Backend authorization and CSRF protection remain application contracts.
 
 ## Existing Kubernetes service accounts and configuration
 
@@ -123,6 +117,7 @@ does not change application registrations, permissions or data schemas.
 ## Local validation
 
 ```bash
+python3 scripts/build_app_dependencies.py
 helm lint charts/rust_app --set image=example/rust-app:1 --set host=rust.example.com
 python3 scripts/check_rust_app.py
 python3 scripts/check_forwardauth.py

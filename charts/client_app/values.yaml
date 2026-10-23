@@ -1,5 +1,10 @@
 appPort: 8000
-routeFilters: []
+auth: null
+runtimeConfig: {}
+gateway:
+  name: traefik
+  namespace: traefik
+  sectionName: websecure
 resources:
   requests:
     cpu: 10m

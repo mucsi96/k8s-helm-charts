@@ -28,7 +28,7 @@ helm upgrade my-go-app mucsi96/go-app --install \
 | `appPort` | Application container and Service port; sets `SERVER_PORT` | `8080` |
 | `managementPort` | Health listener container and Service port; sets `MANAGEMENT_PORT` | `8082` |
 | `basePath` | Route prefix, also supplied as `BASE_PATH` | `/` |
-| `routeFilters` | Ordered standard Gateway API HTTPRoute filters, including an optional auth ExtensionRef | `[]` |
+| `auth` | Proxy reference; chart owns API authentication and header policies | `null` |
 | `health.livenessPath` | Liveness endpoint on the management listener | `/health/liveness` |
 | `health.readinessPath` | Readiness and startup endpoint on the management listener | `/health/readiness` |
 | `env` | Environment variables stored in a Secret | `{}` |
@@ -50,32 +50,23 @@ the ten-second pre-stop drain hook.
 The chart sets the port/base-path environment variables directly; configure
 them with chart values rather than duplicate entries under `env`.
 
-## HTTPRoute filters
+## Authentication
 
-Go applications accept the same `routeFilters` as the other app charts. For
-example, standard response-header handling needs no Traefik Middleware resource:
+The Go chart owns its API authentication and header/cache policies. Callers supply
+a proxy reference or leave `auth: null` for direct public routing.
 
-```yaml
-routeFilters:
-  - type: ResponseHeaderModifier
-    responseHeaderModifier:
-      set:
-        - name: Cache-Control
-          value: no-store
-```
-
-For stock ForwardAuth, use the ordered API policy from the platform auth chart:
+For stock ForwardAuth, supply the proxy reference:
 
 ```bash
-API_FILTERS=$(kubectl -n my-app get configmap my-app-oauth2-proxy-route-filters -o jsonpath='{.data.api}')
-helm upgrade my-go-app mucsi96/go-app --set-json routeFilters="$API_FILTERS" # plus app values
+helm upgrade my-go-app mucsi96/go-app \
+  --set auth.proxyService=my-app-oauth2-proxy # plus app values
 ```
 
-The policy strips untrusted identity headers, runs the auth ExtensionRef, and
-applies standard response-header controls. Without filters the rendered route is
-unchanged. The Go API still validates its JWT audience/scopes/roles and protects
-cookie-authenticated mutations against CSRF. The render example and shared
-ForwardAuth checks cover Go filters explicitly.
+The Go chart creates its own Middleware, strips untrusted identity before the
+API auth check and protects response headers. `auth: null` keeps routing public.
+Manual filter lists are not supported. The API still validates JWTs/roles and
+protects cookie-authenticated mutations against CSRF. See
+[application authentication](../../docs/application-auth.md) for modes and upgrade order.
 
 ## Migrating from spring-app
 
@@ -98,6 +89,7 @@ and the workload identity service account retain their existing resource names.
 ## Local validation
 
 ```bash
+python3 scripts/build_app_dependencies.py
 helm lint charts/go_app --set image=example/go-app:1 \
   --set host=api.example.com --set serviceAccountName=go-app --set clientId=example
 bash scripts/render_go_app.sh
