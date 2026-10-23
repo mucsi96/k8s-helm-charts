@@ -3,7 +3,6 @@
   "type": "object",
   "properties": {
     "basePath": {"const": "/"},
-    "runtimeConfig": {"type": "object", "additionalProperties": {"type": "string"}},
-    "healthPath": {"type": "string", "pattern": "^/[^?#\\s]*$"}
+    "runtimeConfig": {"type": "object", "additionalProperties": {"type": "string"}}
   }
 }

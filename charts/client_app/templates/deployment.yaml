@@ -31,19 +31,19 @@ spec:
               name: {{ .Release.Name }}-env
         livenessProbe:
           httpGet:
-            path: {{ printf "%s?liveness" .Values.healthPath | quote }}
+            path: /?liveness
             port: http
           initialDelaySeconds: 10
           periodSeconds: 5
         readinessProbe:
           httpGet:
-            path: {{ printf "%s?readiness" .Values.healthPath | quote }}
+            path: /?readiness
             port: http
           initialDelaySeconds: 10
           periodSeconds: 5
         startupProbe:
           httpGet:
-            path: {{ printf "%s?startup" .Values.healthPath | quote }}
+            path: /?startup
             port: http
           failureThreshold: 20
           periodSeconds: 5

@@ -20,7 +20,6 @@ at the repository root first. Published charts already bundle the shared library
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `appPort` | Port the application listens on | `8000` |
-| `healthPath` | Static origin path used by startup/readiness/liveness probes | `/` |
 | `auth` | Same-namespace proxy reference; creates client-owned document authentication | `null` |
 | `runtimeConfig` | Public string-valued JSON injected into index HTML | `{}` |
 | `gateway` | Parent Gateway name, namespace and listener section | `traefik`, `traefik`, `websecure` |
@@ -35,7 +34,9 @@ GET/HEAD `/`, `/index.html` and document requests (`Sec-Fetch-Dest: document` or
 HTML in `Accept`) use the document rule. The Gateway selects `/index.html` for
 these requests; nginx/storage only serves actual files and returns 404 for
 missing assets. Every client app is hosted at `/` on its own hostname; there is
-no configurable UI base path. For a static-only origin, use `healthPath=/index.html`.
+no configurable UI base path. Startup, readiness and liveness probes always use
+`/` directly on the origin, bypassing the Gateway. The origin must serve
+`index.html` at `/`; nested SPA paths remain Gateway-owned.
 
 The static catchall does not perform document authentication or index rewriting.
 More-specific API, OAuth and telemetry routes keep their own policy. Both static

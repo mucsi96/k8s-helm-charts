@@ -192,17 +192,17 @@ for mode in ["api-token", "email-header", "login-gate"]:
     no_config = render("client_app", client_values)
     assert not any(item["kind"] == "Middleware" and item["metadata"]["name"].endswith("-index-config") for item in no_config)
 
-for invalid in [{"runtimeConfig": {"bad": {"nested": True}}}, {"healthPath": "index.html"}, {"routeFilters": [{"type": "URLRewrite"}]}, {"basePath": "/portal"}]:
+for invalid in [{"runtimeConfig": {"bad": {"nested": True}}}, {"routeFilters": [{"type": "URLRewrite"}]}, {"basePath": "/portal"}]:
     render("client_app", {"image": "example/client:1", "host": "hello.example.test", **invalid}, success=False)
 
-values = {"image": "example/client:1", "host": "hello.example.test", "healthPath": "/index.html"}
+values = {"image": "example/client:1", "host": "hello.example.test"}
 resources = render("client_app", values)
 route = resource(resources, "HTTPRoute", "-route")["spec"]
 assert len(route["rules"]) == 2 and not any(item["type"] == "ExtensionRef" for item in route["rules"][0]["filters"])
 assert route["rules"][0]["filters"][-1]["urlRewrite"]["path"]["replaceFullPath"] == "/index.html"
 assert not any(item["kind"] == "Middleware" for item in resources)
 container = resource(resources, "Deployment", "hello-oauth2-proxy")["spec"]["template"]["spec"]["containers"][0]
-assert all(container[probe]["httpGet"]["path"].startswith("/index.html?") for probe in ["startupProbe", "readinessProbe", "livenessProbe"])
+assert all(container[probe]["httpGet"]["path"] == f"/?{probe.removesuffix('Probe')}" for probe in ["startupProbe", "readinessProbe", "livenessProbe"])
 index = route["rules"][0]
 assert {match["path"]["value"] for rule in route["rules"] for match in rule["matches"]} == {"/", "/index.html"}
 assert index["filters"][-1]["urlRewrite"]["path"]["replaceFullPath"] == "/index.html"
