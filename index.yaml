@@ -3,6 +3,19 @@ entries:
   client-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-23T06:59:15.204400638Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 2.0.0
+    description: A Helm chart for client app deployment
+    digest: db684978847ffc23652f4d40a8a2cb99320830f219c68e5b2f48d557b197d7dc
+    name: client-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/client-app-24.0.0/client-app-24.0.0.tgz
+    version: 24.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-10-15T13:28:47.266056737Z"
     description: A Helm chart for client app deployment
     digest: 6624ce9f15e3628b6b2f4fa9e3a4d10c5bd6f51ac8db305286a440993e9760d6
@@ -94,6 +107,19 @@ entries:
   go-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-23T06:59:15.340904892Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 2.0.0
+    description: A Helm chart for Go app deployment
+    digest: 02357c8f9ff9ea8455952ebf1e7f6c118ef30e5e8580607e56d69ced8d8d84d2
+    name: go-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/go-app-3.0.0/go-app-3.0.0.tgz
+    version: 3.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-10-15T13:28:47.63613604Z"
     description: A Helm chart for Go app deployment
     digest: 7fedf48a27a43260e634ef8971c12e132c3c32a67c03f1c83203ee84319c3849
@@ -111,6 +137,19 @@ entries:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/go-app-1.0.0/go-app-1.0.0.tgz
     version: 1.0.0
   node-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-10-23T06:59:15.494710363Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 2.0.0
+    description: A Helm chart for NodeJs app deployment
+    digest: 1099ad404936ead0729f73893b0746328f5edc146f284a44cb59761fce953e2b
+    name: node-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-22.0.0/node-app-22.0.0.tgz
+    version: 22.0.0
   - apiVersion: v2
     appVersion: "1.0"
     created: "2026-10-15T13:28:47.871597845Z"
@@ -175,6 +214,20 @@ entries:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-15.0.0/node-app-15.0.0.tgz
     version: 15.0.0
   oauth2-proxy-forwardauth:
+  - apiVersion: v2
+    appVersion: 7.15.2
+    created: "2026-10-23T06:59:15.619019957Z"
+    dependencies:
+    - name: oauth2-proxy
+      repository: https://oauth2-proxy.github.io/manifests
+      version: 10.4.3
+    description: Stock oauth2-proxy sessions with Traefik Gateway API ForwardAuth
+    digest: 055f1838798f9c4f58b5a0f555fd6cd583777c75979cda2174ba07a0a9087d88
+    name: oauth2-proxy-forwardauth
+    type: application
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/oauth2-proxy-forwardauth-6.0.0/oauth2-proxy-forwardauth-6.0.0.tgz
+    version: 6.0.0
   - apiVersion: v2
     appVersion: 7.15.2
     created: "2026-10-17T19:50:55.636938209Z"
@@ -322,6 +375,20 @@ entries:
   rust-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-23T06:59:16.143747698Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 2.0.0
+    description: A Helm chart for distroless Rust HTTP applications
+    digest: 1fa293266d777c6fa049ecdd40d4dc57e2e1b55622e05c5f755aba775d2f8ef4
+    name: rust-app
+    type: application
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/rust-app-2.0.0/rust-app-2.0.0.tgz
+    version: 2.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-10-15T13:28:48.899925421Z"
     description: A Helm chart for distroless Rust HTTP applications
     digest: 8de0666b637e6d0cd09bafb3655466622c466840c3dbdc2997ff131c148e701e
@@ -331,6 +398,19 @@ entries:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/rust-app-1.0.0/rust-app-1.0.0.tgz
     version: 1.0.0
   spring-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-10-23T06:59:16.260359008Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 2.0.0
+    description: A Helm chart for Spring app deployment
+    digest: f1afa8404bccd9689d850a0018c72615c609f9486f0450248c55b3aeb9996c00
+    name: spring-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-32.0.0/spring-app-32.0.0.tgz
+    version: 32.0.0
   - apiVersion: v2
     appVersion: "1.0"
     created: "2026-10-15T13:28:49.303663134Z"
@@ -385,4 +465,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-26.0.0/spring-app-26.0.0.tgz
     version: 26.0.0
-generated: "2026-10-17T19:50:56.418646669Z"
+generated: "2026-10-23T06:59:16.260494261Z"
