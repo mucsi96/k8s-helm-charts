@@ -86,16 +86,12 @@ spec:
                   - name: Accept-Encoding
                     value: identity
         {{- end }}
+    {{- if not $external }}
     - matches:
         - path:
             type: PathPrefix
             value: /
       filters:
-        {{- if $external }}
-        - type: URLRewrite
-          urlRewrite:
-            hostname: {{ required "origin hostname is required" $originHost | quote }}
-        {{- end }}
         - type: RequestHeaderModifier
           requestHeaderModifier:
             remove: [Authorization, Cookie, X-XSRF-TOKEN, X-Auth-Request-Email, X-Auth-Request-Access-Token, X-Auth-Request-User, X-Forwarded-User, X-Forwarded-Email]
@@ -104,5 +100,6 @@ spec:
             remove: [Authorization, X-Auth-Request-Access-Token]
       backendRefs:
         - {{ include "app-common.client.backend" (dict "root" . "external" $external) | nindent 10 | trim }}
+    {{- end }}
 {{- end -}}
 {{- end -}}

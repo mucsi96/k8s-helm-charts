@@ -9,7 +9,7 @@ release still owns the resources produced by these helpers.
 - `app-common.auth.requestFilters`: caller identity stripping and middleware reference.
 - `app-common.auth.apiFilters`: API cache/header policy plus the request filters.
 - `app-common.api.route`: common backend HTTPRoute, with optional proxy-based auth.
-- `app-common.client.route`: shared document/static HTTPRoute, SPA rewriting and header policy.
+- `app-common.client.route`: shared SPA document HTTPRoute and header policy; container clients also include an asset catchall.
 - `app-common.client.backend`: container Service or external TraefikService reference.
 - `app-common.client.runtimeConfig`: public inline HTML bootstrap configuration injection.
 

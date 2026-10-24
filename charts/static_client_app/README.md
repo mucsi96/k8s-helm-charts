@@ -29,11 +29,25 @@ index last and retain old bundles for open browser tabs.
 | `runtimeConfig` | Public string values injected into index HTML | `{}` |
 | `gateway` | Gateway name, namespace and section | `traefik`, `traefik`, `websecure` |
 
-The document/asset matching, deep-link rewriting, session and HTML marker contracts
-are shared with [client-app](../client_app/README.md). Missing files must return
-404: leave Azure's error document unset. Only public build files belong in storage;
+The document matching, deep-link rewriting, session and HTML marker contracts
+are shared with [client-app](../client_app/README.md). This chart has no asset
+catchall: browser assets must use absolute storage URLs. Leave Azure's error
+document unset. Only public build files belong in storage;
 Azure's website endpoint is anonymously readable even though the app hostname
 authenticates document requests. The API retains its own authorization.
+
+## Direct assets and CORS
+
+Publish scripts, module preloads, styles, icons and manifests with absolute storage
+URLs and `crossorigin="anonymous"`. Keep `<base href="/">` so navigation and APIs
+stay on the application hostname. Module imports and external CSS font URLs resolve
+relative to their storage-hosted parents; inline CSS asset URLs must be absolute.
+Manifest `id`, `start_url` and `scope` must reference the application origin.
+
+Azure static website endpoints do not support CORS. Use the website endpoint for
+gateway document fetches, and a public-read Blob container for browser assets.
+Configure Blob CORS for the application's HTTPS origin and GET/HEAD/OPTIONS.
+See [Azure's limitations](https://learn.microsoft.com/azure/storage/blobs/storage-blob-static-website#viewing-content).
 
 ## Gateway API and Traefik
 
