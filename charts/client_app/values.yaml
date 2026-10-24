@@ -1,5 +1,4 @@
 appPort: 8000
-staticOrigin: null
 auth: null
 runtimeConfig: {}
 gateway:

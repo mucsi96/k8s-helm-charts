@@ -137,12 +137,14 @@ for chart in ["spring_app", "go_app", "node_app", "rust_app"]:
     assert "filters" not in before["spec"]["rules"][0]
 
 AUTH = {"proxyService": "platform-proxy", "proxyPort": 80}
-for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
+for chart in ["client_app", "static_client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     for mode in ["api-token", "email-header", "login-gate"]:
         values = {"image": "example/app:1", "host": "hello.example.test", "serviceAccountName": "hello-api", "clientId": "example-client", "auth": {**AUTH, "mode": mode}}
+        if chart == "static_client_app":
+            values["staticOrigin"] = "fixture.z1.web.core.windows.net"
         resources = render(chart, values)
         middleware = resource(resources, "Middleware", "-auth")["spec"]["forwardAuth"]
-        document = chart == "client_app"
+        document = chart in {"client_app", "static_client_app"}
         assert middleware["address"] == "http://platform-proxy.hello.svc.cluster.local:80/" + ("" if document else "oauth2/auth")
         assert middleware["forwardBody"] is False and middleware["trustForwardHeader"] is False
         assert "Authorization" not in middleware["authRequestHeaders"]
@@ -194,6 +196,11 @@ for mode in ["api-token", "email-header", "login-gate"]:
 
 for invalid in [{"runtimeConfig": {"bad": {"nested": True}}}, {"routeFilters": [{"type": "URLRewrite"}]}, {"basePath": "/portal"}]:
     render("client_app", {"image": "example/client:1", "host": "hello.example.test", **invalid}, success=False)
+    render("static_client_app", {"host": "hello.example.test", "staticOrigin": "fixture.z1.web.core.windows.net", **invalid}, success=False)
+
+for invalid_origin in [None, "", "https://fixture.z1.web.core.windows.net", "fixture.z1.web.core.windows.net/path"]:
+    render("static_client_app", {"host": "hello.example.test", "staticOrigin": invalid_origin}, success=False)
+render("client_app", {"image": "example/client:1", "host": "hello.example.test", "staticOrigin": "fixture.z1.web.core.windows.net"}, success=False)
 
 values = {"image": "example/client:1", "host": "hello.example.test"}
 resources = render("client_app", values)
@@ -211,4 +218,4 @@ values = copy.deepcopy(VALUES)
 values["global"]["forwardAuth"]["cookieName"] = "__Host-custom"
 render("oauth2_proxy_forwardauth", values, success=False)
 
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": invalid_configurations_rejected, "compatibleAppCharts": 5, "exactForwardAuthExclusions": True, "rootOnlySpa": True, "hostOnlySessionCookie": True, "appOwnedAuth": True, "proxyPolicyResources": 0}))
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": invalid_configurations_rejected, "compatibleAppCharts": 6, "exactForwardAuthExclusions": True, "rootOnlySpa": True, "hostOnlySessionCookie": True, "appOwnedAuth": True, "proxyPolicyResources": 0}))

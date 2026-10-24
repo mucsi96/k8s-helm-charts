@@ -15,7 +15,7 @@ auth:
   mode: api-token
 ```
 
-Supported by `client-app`, `spring-app`, `go-app`, `node-app` and `rust-app`.
+Supported by `client-app`, `static-client-app`, `spring-app`, `go-app`, `node-app` and `rust-app`.
 The Service must be in the app release namespace. `proxyPort` defaults to 80;
 `mode` defaults to api-token and must match the platform proxy configuration.
 Only `proxyService` is required. `auth: null` creates no auth

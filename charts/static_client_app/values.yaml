@@ -1,0 +1,8 @@
+# Required: Azure Storage primary_web_host, without a scheme or path.
+staticOrigin: null
+auth: null
+runtimeConfig: {}
+gateway:
+  name: traefik
+  namespace: traefik
+  sectionName: websecure

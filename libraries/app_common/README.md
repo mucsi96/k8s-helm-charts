@@ -1,6 +1,6 @@
 # app-common
 
-Helm **library chart** used by client, Spring, Go, Node and Rust charts. It renders
+Helm **library chart** used by container/static client, Spring, Go, Node and Rust charts. It renders
 no resources independently and requires no cluster release. Each application
 release still owns the resources produced by these helpers.
 
@@ -9,10 +9,13 @@ release still owns the resources produced by these helpers.
 - `p07.auth.requestFilters`: caller identity stripping and middleware reference.
 - `p07.auth.apiFilters`: API cache/header policy plus the request filters.
 - `p07.api.route`: common backend HTTPRoute, with optional proxy-based auth.
+- `p07.client.route`: shared document/static HTTPRoute, SPA rewriting and header policy.
+- `p07.client.backend`: container Service or external TraefikService reference.
+- `p07.client.runtimeConfig`: public inline HTML bootstrap configuration injection.
 
 Nonempty legacy filter lists are rejected; charts own the policies instead of
-accepting caller-authored Gateway filters. The client keeps its specialized SPA/config route and reuses authentication
-helpers. Runtime-specific Deployment/Service/probe templates remain in each chart.
+accepting caller-authored Gateway filters. Both client charts use the same SPA/config
+and authentication helpers. Origin-specific resources remain in their charts.
 
 ## Dependencies and releases
 
@@ -21,7 +24,7 @@ Run `python3 scripts/build_app_dependencies.py` after checkout or library edits.
 The dependency is bundled inside each published app chart, so installing an app
 does not require this repository or another chart repository/release.
 
-When changing templates, bump this library's semantic version and update all five
+When changing templates, bump this library's semantic version and update all six
 consumer dependency versions. Regenerate their locks with
 `helm dependency update --skip-refresh charts/<chart>` for each consumer.
 Their Chart.yaml changes trigger the

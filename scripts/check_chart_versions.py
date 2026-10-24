@@ -33,7 +33,7 @@ with tempfile.TemporaryDirectory(prefix="chart-metadata-") as directory:
 workflow = yaml.safe_load((ROOT / ".github/workflows/release.yaml").read_text())
 steps = workflow["jobs"]["release"]["steps"]
 version_steps = [step for step in steps if step.get("uses", "").startswith("mucsi96/get-next-version@")]
-assert len(version_steps) == 8 and all(step["with"]["suffix"] == ".0.0" for step in version_steps)
+assert len(version_steps) == 9 and all(step["with"]["suffix"] == ".0.0" for step in version_steps)
 assert not any("prepare_chart_version_tags" in step.get("run", "") for step in steps)
 uploader = next(step for step in steps if step.get("uses", "").startswith("helm/chart-releaser-action@"))
 assert uploader["with"]["skip_existing"] is True

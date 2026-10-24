@@ -3,7 +3,7 @@ from pathlib import Path
 import subprocess
 
 ROOT = Path(__file__).resolve().parents[1]
-APP_CHARTS = ['client_app', 'spring_app', 'go_app', 'node_app', 'rust_app']
+APP_CHARTS = ['client_app', 'static_client_app', 'spring_app', 'go_app', 'node_app', 'rust_app']
 
 
 def main():

@@ -71,7 +71,8 @@ def main():
         ('static-origin', client_values),
         ('public-origin', {**client_values, 'host': '127.0.0.1', 'auth': None, 'runtimeConfig': public_runtime}),
     ]:
-        rendered_client = subprocess.run(['helm', 'template', release, str(ROOT / 'charts/client_app'), '-f', '-'],
+        chart = 'static_client_app' if external else 'client_app'
+        rendered_client = subprocess.run(['helm', 'template', release, str(ROOT / 'charts' / chart), '-f', '-'],
                                          input=yaml.safe_dump(configuration), capture_output=True, text=True, check=True)
         client_resources.extend(item for item in yaml.safe_load_all(rendered_client.stdout) if item)
     if external:
@@ -82,7 +83,7 @@ def main():
                 item['spec']['ports'][0]['port'] = tls_port
             if item['kind'] == 'TraefikService':
                 service = item['spec']['weighted']['services'][0]
-                assert service['scheme'] == 'https' and service['passHostHeader'] is False
+                assert service['scheme'] == 'https' and service['passHostHeader'] is True
                 service['port'] = tls_port
     assert not any(item['kind'] == 'HTTPRoute' and item['metadata']['name'].endswith('-frontend') for item in resources)
     rendered_api = subprocess.run(['helm', 'template', 'api-origin', str(ROOT / 'charts/spring_app'), '-f', '-'],
@@ -181,7 +182,7 @@ def main():
              'env': [{'name': 'PORT', 'value': str(kubernetes_port)}],
              'volumeMounts': [*mount, {'name': 'fixture', 'mountPath': '/fixture', 'readOnly': True}],
              'ports': [{'containerPort': kubernetes_port, 'hostPort': kubernetes_port}]},
-            {'name': 'gateway', 'image': 'docker.io/library/traefik:v3.7.13', 'args': ['--configFile=/config/traefik.yaml'],
+            {'name': 'gateway', 'image': 'docker.io/library/traefik:v3.7.16', 'args': ['--configFile=/config/traefik.yaml'],
               'env': [{'name': 'SSL_CERT_FILE', 'value': '/config/origin.crt'}],
              'volumeMounts': [*mount, {'name': 'plugins', 'mountPath': '/plugins-local', 'readOnly': True}],
              'ports': [{'containerPort': gateway_port, 'hostPort': gateway_port}]},
@@ -276,7 +277,7 @@ def main():
             assets = [item for item in records if item['path'] in {'/main.js', '/assets/main-HASH.js'}]
             assert assets and all(not item['cookie'] and not item['authorization'] for item in assets)
             if external:
-                assert all(item['tls'] and item['host'] == f'localhost:{tls_port}' for item in [*index_requests, *assets]), 'External origin requires verified TLS and the storage Host header'
+                assert all(item['tls'] and item['host'] == 'localhost' for item in [*index_requests, *assets]), 'External origin requires verified TLS and native Gateway hostname rewriting'
             telemetry = next(item for item in records if item['path'] == '/collect')
             assert not telemetry['cookie'] and not telemetry['authorization'] and not telemetry['xsrf']
             objects = json.loads(fetch(f'http://localhost:{kubernetes_port}/objects')[2])
