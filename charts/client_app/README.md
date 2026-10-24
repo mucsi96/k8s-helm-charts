@@ -1,6 +1,6 @@
 # Client App Helm Chart
 
-A Helm chart for deploying static frontend applications served by nginx.
+A Helm chart for routing static frontend applications from nginx or an HTTPS storage origin.
 The client release always owns its SPA document and static-asset HTTPRoute,
 independently of whether authentication or runtime injection is configured.
 
@@ -20,6 +20,7 @@ at the repository root first. Published charts already bundle the shared library
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `appPort` | Port the application listens on | `8000` |
+| `staticOrigin` | External HTTPS origin hostname; omits client Deployment and Secret | `null` |
 | `auth` | Same-namespace proxy reference; creates client-owned document authentication | `null` |
 | `runtimeConfig` | Public string-valued JSON injected into index HTML | `{}` |
 | `gateway` | Parent Gateway name, namespace and listener section | `traefik`, `traefik`, `websecure` |
@@ -29,6 +30,32 @@ at the repository root first. Published charts already bundle the shared library
 | `resources.limits.cpu` | CPU limit | `500m` |
 
 ## SPA routing and optional authentication
+
+### Azure Storage origin
+
+Set `staticOrigin` to the account's `primary_web_host` (hostname only). Keep the
+same release name on upgrade with `--reset-values`: Helm removes the old client
+Deployment/Secret and replaces the Service with an ExternalName Service.
+No image or application port is needed in this mode.
+
+The HTTPRoute references a same-namespace TraefikService using HTTPS on port 443,
+normal certificate verification, and `passHostHeader: false` for the storage Host
+header. Enable `providers.kubernetesCRD.allowExternalNameServices` in Traefik and
+grant the app deployment identity namespace-scoped TraefikService permissions.
+Direct Gateway API ExternalName backends are unsupported by Traefik 3.7.
+
+Document credential/conditional-header stripping runs through a route-level
+Middleware after ForwardAuth because Traefik ignores backend filters on
+TraefikService references. The existing container mode retains its backend filters.
+Both modes are covered by `scripts/check_spa_frontend.py`; run with
+`STATIC_ORIGIN=1` to exercise an external TLS origin, including Host headers.
+
+Upload only public files, set correct MIME types, and publish index last. Azure's
+website endpoint is publicly readable; authentication is enforced at the app's
+gateway hostname and by the API, not by Storage. Leave the website's 404 document
+unset so missing assets never become SPA HTML. No credentials belong in HTML.
+
+### Document rules
 
 GET/HEAD `/`, `/index.html` and document requests (`Sec-Fetch-Dest: document` or
 HTML in `Accept`) use the document rule. The Gateway selects `/index.html` for

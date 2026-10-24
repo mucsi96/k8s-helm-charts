@@ -6,6 +6,14 @@ metadata:
   labels:
     app: {{ .Release.Name }}
 spec:
+  {{- if .Values.staticOrigin }}
+  type: ExternalName
+  externalName: {{ .Values.staticOrigin | quote }}
+  ports:
+    - port: 443
+      protocol: TCP
+      name: https
+  {{- else }}
   ports:
     - port: {{ required "appPort value is required!" .Values.appPort }}
       targetPort: http
@@ -13,3 +21,4 @@ spec:
       name: http
   selector:
     app: {{ .Release.Name }}
+  {{- end }}

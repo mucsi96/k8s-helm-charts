@@ -1,3 +1,4 @@
+{{- if not .Values.staticOrigin }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -47,3 +48,4 @@ spec:
             port: http
           failureThreshold: 20
           periodSeconds: 5
+{{- end }}

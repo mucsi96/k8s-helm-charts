@@ -3,6 +3,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import base64
 import json
 import os
+import ssl
+import threading
 
 requests = []
 INDEX = b'''<!doctype html><html><head><script>window.__APP_CONFIG__ = "__APP_CONFIG_JSON__";</script></head><body><script src="/assets/main-HASH.js"></script></body></html>'''
@@ -30,6 +32,7 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(200, json.dumps(requests).encode(), 'application/json')
             return
         requests.append({'path': self.path, 'cookie': bool(self.headers.get('Cookie')),
+                         'host': self.headers.get('Host'), 'tls': isinstance(self.connection, ssl.SSLSocket),
                          'authorization': bool(self.headers.get('Authorization')),
                          'conditional': bool(self.headers.get('If-None-Match') or self.headers.get('If-Modified-Since')),
                          'range': bool(self.headers.get('Range') or self.headers.get('If-Range')),
@@ -69,4 +72,10 @@ class Handler(BaseHTTPRequestHandler):
         self.respond(202 if path == '/collect' else 404, b'{}', 'application/json')
 
 
+if os.environ.get('TLS_PORT'):
+    tls = ThreadingHTTPServer(('0.0.0.0', int(os.environ['TLS_PORT'])), Handler)
+    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain('/config/origin.crt', '/config/origin.key')
+    tls.socket = context.wrap_socket(tls.socket, server_side=True)
+    threading.Thread(target=tls.serve_forever, daemon=True).start()
 ThreadingHTTPServer(('0.0.0.0', int(os.environ['PORT'])), Handler).serve_forever()
