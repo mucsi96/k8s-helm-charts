@@ -3,6 +3,19 @@ entries:
   client-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-24T19:03:36.912897587Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 5.0.0
+    description: A Helm chart for client app deployment
+    digest: a2304068ae84f0776ab99ebecab19809e00f880481916f74f746d4e315bc9d90
+    name: client-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/client-app-28.0.0/client-app-28.0.0.tgz
+    version: 28.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-10-24T18:20:52.691618162Z"
     dependencies:
     - name: app-common
@@ -146,6 +159,19 @@ entries:
   go-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-24T19:03:37.039072815Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 5.0.0
+    description: A Helm chart for Go app deployment
+    digest: 65fb705124cb52eecd6580455b67008693430216bc778a221458f0e1497e91db
+    name: go-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/go-app-7.0.0/go-app-7.0.0.tgz
+    version: 7.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-10-24T18:20:52.882572629Z"
     dependencies:
     - name: app-common
@@ -215,6 +241,19 @@ entries:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/go-app-1.0.0/go-app-1.0.0.tgz
     version: 1.0.0
   node-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-10-24T19:03:37.15833403Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 5.0.0
+    description: A Helm chart for NodeJs app deployment
+    digest: 91d4d69425e37164aa3dca9b0eb010ed79f6e16e97b3d25eb01f80b6ad01dc5e
+    name: node-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/node-app-26.0.0/node-app-26.0.0.tgz
+    version: 26.0.0
   - apiVersion: v2
     appVersion: "1.0"
     created: "2026-10-24T18:20:53.067968851Z"
@@ -506,6 +545,20 @@ entries:
   rust-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-24T19:03:37.68480875Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 5.0.0
+    description: A Helm chart for distroless Rust HTTP applications
+    digest: 97179e72d1acc0c582ea11f106a487a962c3ebad6b7da5c1c9fbc5d9971de7df
+    name: rust-app
+    type: application
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/rust-app-6.0.0/rust-app-6.0.0.tgz
+    version: 6.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-10-24T18:20:53.898255141Z"
     dependencies:
     - name: app-common
@@ -571,6 +624,19 @@ entries:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/rust-app-1.0.0/rust-app-1.0.0.tgz
     version: 1.0.0
   spring-app:
+  - apiVersion: v2
+    appVersion: "1.0"
+    created: "2026-10-24T19:03:37.859219401Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 5.0.0
+    description: A Helm chart for Spring app deployment
+    digest: b67656410d19f389384dbd3a7cbf152197deb387e80ae26b58bc4207548a7c51
+    name: spring-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/spring-app-36.0.0/spring-app-36.0.0.tgz
+    version: 36.0.0
   - apiVersion: v2
     appVersion: "1.0"
     created: "2026-10-24T18:20:54.097655668Z"
@@ -680,6 +746,19 @@ entries:
   static-client-app:
   - apiVersion: v2
     appVersion: "1.0"
+    created: "2026-10-24T19:03:38.001003221Z"
+    dependencies:
+    - name: app-common
+      repository: file://../../libraries/app_common
+      version: 5.0.0
+    description: Gateway hosting for static clients on external HTTPS storage origins
+    digest: 9ccc2b3ad6cc9961d5d840e43911b6f7d29ec254453aceb9c58698980c8b6212
+    name: static-client-app
+    urls:
+    - https://github.com/mucsi96/k8s-helm-charts/releases/download/static-client-app-4.0.0/static-client-app-4.0.0.tgz
+    version: 4.0.0
+  - apiVersion: v2
+    appVersion: "1.0"
     created: "2026-10-24T18:20:54.313659588Z"
     dependencies:
     - name: app-common
@@ -717,4 +796,4 @@ entries:
     urls:
     - https://github.com/mucsi96/k8s-helm-charts/releases/download/static-client-app-1.0.0/static-client-app-1.0.0.tgz
     version: 1.0.0
-generated: "2026-10-24T18:20:54.313805809Z"
+generated: "2026-10-24T19:03:38.001147627Z"
