@@ -2,6 +2,7 @@
 staticOrigin: null
 auth: null
 runtimeConfig: {}
+# Shared document defaults: Referrer-Policy=no-referrer, X-Content-Type-Options=nosniff.
 documentResponseHeaders: {}
 gateway:
   name: traefik

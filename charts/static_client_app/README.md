@@ -27,7 +27,7 @@ index last and retain old bundles for open browser tabs.
 | `staticOrigin` | Storage `primary_web_host`, without scheme or path | required |
 | `auth` | Same-namespace proxy reference, as in client-app | `null` |
 | `runtimeConfig` | Public string values injected into index HTML | `{}` |
-| `documentResponseHeaders` | Document response headers, including application CSP; cache/auth/validator headers are reserved | `{}` |
+| `documentResponseHeaders` | Override/add document response headers, including application CSP; cache/auth/validator headers are reserved | `{}` |
 | `gateway` | Gateway name, namespace and section | `traefik`, `traefik`, `websecure` |
 
 The document matching, deep-link rewriting, session and HTML marker contracts
@@ -38,6 +38,11 @@ Azure's website endpoint is anonymously readable even though the app hostname
 authenticates document requests. The API retains its own authorization.
 
 ## Direct assets and CORS
+
+Document responses default to `Referrer-Policy: no-referrer` and
+`X-Content-Type-Options: nosniff`. `documentResponseHeaders` overrides these
+case-insensitively; CSP remains application-specific. These shared defaults also
+apply to container clients. Direct Blob asset responses are controlled by Azure.
 
 Publish scripts, module preloads, styles, icons and manifests with absolute storage
 URLs and `crossorigin="anonymous"`. Keep `<base href="/">` so navigation and APIs
