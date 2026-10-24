@@ -64,7 +64,7 @@ platform's k3s-owned Traefik release; installing this chart does not upgrade it.
 ## Development
 
 Run `python3 scripts/build_app_dependencies.py`, then
-`python3 scripts/check_static_frontend.py`. The shared suite tests
+`python3 scripts/check_static_spa_frontend.py`. The shared suite tests
 real Traefik, proxy login, TLS/Host handling, deep links, missing assets, config
 injection, credential stripping, API isolation and telemetry. Run
 `python3 scripts/check_spa_frontend.py` to check the container-hosted chart with
