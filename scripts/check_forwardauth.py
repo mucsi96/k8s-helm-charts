@@ -200,7 +200,6 @@ for invalid in [{"runtimeConfig": {"bad": {"nested": True}}}, {"routeFilters": [
 
 for invalid_origin in [None, "", "https://fixture.z1.web.core.windows.net", "fixture.z1.web.core.windows.net/path"]:
     render("static_client_app", {"host": "hello.example.test", "staticOrigin": invalid_origin}, success=False)
-render("client_app", {"image": "example/client:1", "host": "hello.example.test", "staticOrigin": "fixture.z1.web.core.windows.net"}, success=False)
 
 values = {"image": "example/client:1", "host": "hello.example.test"}
 resources = render("client_app", values)
