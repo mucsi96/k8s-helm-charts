@@ -36,8 +36,7 @@ def fetch(url, cookies=None, headers=None, data=None, follow=True, method=None):
     return response.status, response.headers, response.read(), response.geturl()
 
 
-def main():
-    external = os.environ.get('STATIC_ORIGIN') == '1'
+def main(*, external=False):
     ports = set()
     while len(ports) < 6:
         ports.add(free_port())
