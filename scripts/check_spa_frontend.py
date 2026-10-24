@@ -174,7 +174,8 @@ def main(*, external=False):
             {'name': 'issuer', 'image': 'ghcr.io/mucsi96/mock-oidc-provider:14', 'env': [{'name': key, 'value': value} for key, value in env.items()], 'volumeMounts': mount,
              'ports': [{'containerPort': issuer_port, 'hostPort': issuer_port}]},
             {'name': 'origin', 'image': 'docker.io/library/python:3.14-alpine', 'command': ['python3', '-B', '-u', '/fixture/spa_origin.py'],
-              'env': [{'name': 'PORT', 'value': str(origin_port)}, {'name': 'TLS_PORT', 'value': str(tls_port)}],
+              'env': [{'name': 'PORT', 'value': str(origin_port)}, {'name': 'TLS_PORT', 'value': str(tls_port)},
+                      {'name': 'ASSET_ORIGIN', 'value': f'http://localhost:{origin_port}' if external else ''}],
               'volumeMounts': [*mount, {'name': 'fixture', 'mountPath': '/fixture', 'readOnly': True}],
              'ports': [{'containerPort': origin_port, 'hostPort': origin_port}]},
             {'name': 'kubernetes', 'image': 'docker.io/library/python:3.14-alpine', 'command': ['python3', '-B', '-u', '/fixture/kubernetes_api.py'],
@@ -208,7 +209,7 @@ def main(*, external=False):
             status, _, _, _ = fetch(f'{public}/index.html', headers={'Accept': 'application/javascript'}, follow=False)
             assert status == 302, 'Raw index bypassed document authentication'
             assert fetch(f'{public}/index.html', follow=False, method='HEAD')[0] == 302
-            assert fetch(f'{public}/main.js', headers={'Cookie': 'private=secret', 'Authorization': 'Bearer forged'})[0] == 200
+            assert fetch(f'{public}/main.js', headers={'Cookie': 'private=secret', 'Authorization': 'Bearer forged'})[0] == (404 if external else 200)
             assert fetch(f'{public}/missing.js')[0] == 404
             assert fetch(f'{public}/api/data')[0] == 401
             status, headers, _, _ = fetch(f'{public}/api/data', headers={'Authorization': 'Bearer forged', 'X-Auth-Request-Email': 'forged@example.test'}, follow=False)
@@ -244,7 +245,8 @@ def main(*, external=False):
                     config = re.search(r'__APP_CONFIG__\s*=\s*({.*?});', body.decode()).group(1)
                     assert json.loads(config) == expected_config, f'Wrong app handled nested route: {path}'
                     scripts = re.findall(r'<script[^>]+src="([^"]+)"', body.decode())
-                    assert scripts == ['/assets/main-HASH.js'], 'Nested documents need root-relative asset URLs'
+                    expected_asset = f'http://localhost:{origin_port}/assets/main-HASH.js' if external else '/assets/main-HASH.js'
+                    assert scripts == [expected_asset], 'Nested documents must resolve assets independently of their SPA path'
                     asset_status, asset_headers, _, _ = fetch(urljoin(final, scripts[0]))
                     assert asset_status == 200 and 'javascript' in asset_headers.get('Content-Type', '')
             assert len(public_cookies) == 0, 'Public SPA unexpectedly started login'
@@ -276,7 +278,8 @@ def main(*, external=False):
             assets = [item for item in records if item['path'] in {'/main.js', '/assets/main-HASH.js'}]
             assert assets and all(not item['cookie'] and not item['authorization'] for item in assets)
             if external:
-                assert all(item['tls'] and item['host'] == 'localhost' for item in [*index_requests, *assets]), 'External origin requires verified TLS and native Gateway hostname rewriting'
+                assert all(item['tls'] and item['host'] == 'localhost' for item in index_requests), 'Documents require verified TLS and native Gateway hostname rewriting'
+                assert all(not item['tls'] and item['host'] == f'localhost:{origin_port}' for item in assets), 'Assets must bypass the gateway and use their direct URLs'
             telemetry = next(item for item in records if item['path'] == '/collect')
             assert not telemetry['cookie'] and not telemetry['authorization'] and not telemetry['xsrf']
             objects = json.loads(fetch(f'http://localhost:{kubernetes_port}/objects')[2])
