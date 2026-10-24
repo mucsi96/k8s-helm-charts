@@ -1,5 +1,5 @@
 {{/* Called with {root: application chart context, target: document|api}. */}}
-{{- define "p07.auth.middleware" -}}
+{{- define "app-common.auth.middleware" -}}
 {{- $root := .root -}}
 {{- $target := .target -}}
 {{- if $root.Values.routeFilters -}}
@@ -43,7 +43,7 @@ spec:
 {{- end -}}
 
 {{/* Shared request identity stripping and reference to the app-owned middleware. */}}
-{{- define "p07.auth.requestFilters" -}}
+{{- define "app-common.auth.requestFilters" -}}
 - type: RequestHeaderModifier
   requestHeaderModifier:
     remove: [Authorization, X-Auth-Request-Email, X-Auth-Request-Access-Token, X-Auth-Request-User, X-Forwarded-User, X-Forwarded-Email]
@@ -54,10 +54,10 @@ spec:
     name: {{ .Release.Name }}-auth
 {{- end -}}
 
-{{- define "p07.auth.apiFilters" -}}
+{{- define "app-common.auth.apiFilters" -}}
 - type: ResponseHeaderModifier
   responseHeaderModifier:
     set: [{name: Cache-Control, value: no-store}]
     remove: [Authorization, X-Auth-Request-Access-Token]
-{{ include "p07.auth.requestFilters" . }}
+{{ include "app-common.auth.requestFilters" . }}
 {{- end -}}

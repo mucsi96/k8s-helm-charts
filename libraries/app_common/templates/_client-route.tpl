@@ -1,5 +1,5 @@
 {{/* Called with {root: chart context, external: bool}. Both client charts use this route. */}}
-{{- define "p07.client.route" -}}
+{{- define "app-common.client.route" -}}
 {{- $external := .external | default false -}}
 {{- $originHost := .originHost -}}
 {{- with .root -}}
@@ -51,7 +51,7 @@ spec:
                 value: private, no-cache, no-store
             remove: [Authorization, X-Auth-Request-Access-Token, ETag, Last-Modified]
       {{- if ne .Values.auth nil }}
-        {{- include "p07.auth.requestFilters" . | nindent 8 }}
+        {{- include "app-common.auth.requestFilters" . | nindent 8 }}
       {{- end }}
       {{- if .Values.runtimeConfig }}
         - type: ExtensionRef
@@ -76,7 +76,7 @@ spec:
             name: {{ .Release.Name }}-origin-headers
       {{- end }}
       backendRefs:
-        - {{ include "p07.client.backend" (dict "root" . "external" $external) | nindent 10 | trim }}
+        - {{ include "app-common.client.backend" (dict "root" . "external" $external) | nindent 10 | trim }}
         {{- if not $external }}
           filters:
             - type: RequestHeaderModifier
@@ -103,6 +103,6 @@ spec:
           responseHeaderModifier:
             remove: [Authorization, X-Auth-Request-Access-Token]
       backendRefs:
-        - {{ include "p07.client.backend" (dict "root" . "external" $external) | nindent 10 | trim }}
+        - {{ include "app-common.client.backend" (dict "root" . "external" $external) | nindent 10 | trim }}
 {{- end -}}
 {{- end -}}

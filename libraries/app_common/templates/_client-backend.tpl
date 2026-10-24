@@ -1,4 +1,4 @@
-{{- define "p07.client.backend" -}}
+{{- define "app-common.client.backend" -}}
 {{- if .external -}}
 group: traefik.io
 kind: TraefikService

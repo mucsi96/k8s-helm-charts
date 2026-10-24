@@ -4,14 +4,14 @@ Helm **library chart** used by container/static client, Spring, Go, Node and Rus
 no resources independently and requires no cluster release. Each application
 release still owns the resources produced by these helpers.
 
-- `p07.auth.middleware`: auth reference validation, fixed session cookie handling,
+- `app-common.auth.middleware`: auth reference validation, fixed session cookie handling,
   document/API endpoints and mode-specific identity forwarding.
-- `p07.auth.requestFilters`: caller identity stripping and middleware reference.
-- `p07.auth.apiFilters`: API cache/header policy plus the request filters.
-- `p07.api.route`: common backend HTTPRoute, with optional proxy-based auth.
-- `p07.client.route`: shared document/static HTTPRoute, SPA rewriting and header policy.
-- `p07.client.backend`: container Service or external TraefikService reference.
-- `p07.client.runtimeConfig`: public inline HTML bootstrap configuration injection.
+- `app-common.auth.requestFilters`: caller identity stripping and middleware reference.
+- `app-common.auth.apiFilters`: API cache/header policy plus the request filters.
+- `app-common.api.route`: common backend HTTPRoute, with optional proxy-based auth.
+- `app-common.client.route`: shared document/static HTTPRoute, SPA rewriting and header policy.
+- `app-common.client.backend`: container Service or external TraefikService reference.
+- `app-common.client.runtimeConfig`: public inline HTML bootstrap configuration injection.
 
 Nonempty legacy filter lists are rejected; charts own the policies instead of
 accepting caller-authored Gateway filters. Both client charts use the same SPA/config

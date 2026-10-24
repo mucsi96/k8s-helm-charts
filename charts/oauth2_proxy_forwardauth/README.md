@@ -173,7 +173,7 @@ generated configuration or enable a second upstream public route.
 ## Standard API support
 
 Gateway API v1.6.3 defines `ExternalAuth` in its experimental channel. Traefik
-v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and p07's v1.6.1
+v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and v1.6.1
 standard-channel CRDs do not expose it. The ForwardAuth Middleware CRDs are
 therefore implementation-specific. Optional inline configuration adds one
 plugin Middleware in the client chart; routing, header policies, Services and

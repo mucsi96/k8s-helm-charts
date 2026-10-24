@@ -1,4 +1,4 @@
-{{- define "p07.client.runtimeConfig" -}}
+{{- define "app-common.client.runtimeConfig" -}}
 {{- if .Values.runtimeConfig }}
 apiVersion: traefik.io/v1alpha1
 kind: Middleware

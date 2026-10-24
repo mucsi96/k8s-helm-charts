@@ -1,1 +1,1 @@
-{{ include "p07.client.route" (dict "root" .) }}
+{{ include "app-common.client.route" (dict "root" .) }}

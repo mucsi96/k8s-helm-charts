@@ -1,1 +1,1 @@
-{{ include "p07.client.runtimeConfig" . }}
+{{ include "app-common.client.runtimeConfig" . }}

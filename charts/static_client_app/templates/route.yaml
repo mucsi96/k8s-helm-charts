@@ -1,1 +1,1 @@
-{{ include "p07.client.route" (dict "root" . "external" true "originHost" .Values.staticOrigin) }}
+{{ include "app-common.client.route" (dict "root" . "external" true "originHost" .Values.staticOrigin) }}
