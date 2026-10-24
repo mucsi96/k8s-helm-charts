@@ -45,28 +45,13 @@ The proxy release owns only its exact public OAuth/control/asset routes and any
 configured exact session-gate exclusions.
 
 There is one authentication input: `auth`. The charts own their header/cache
-policies; there is no manual filter-list option. A nonempty legacy `routeFilters`
-value fails rendering even with `auth: null`, so an old authentication policy
-cannot be silently ignored and expose a route.
+policies.
 Platform-managed service UIs outside these charts must own equivalent document
 middleware themselves; backend charts intentionally perform API checks.
 
-## Upgrade order from policy-exporting proxy charts
+## Deployment
 
-This proxy-chart update removes its old application Middleware and policy
-ConfigMap. Before upgrading an existing proxy release, deploy every consuming
-client/API chart with `auth` and discard old Helm values containing `routeFilters`
-(for example, `--reset-values` while supplying the complete intended app values).
-First configure the
-existing chart-5 proxy with `global.forwardAuth.cookieName: __Host-session`.
-Its Service/endpoints remain the same; changing the name starts a new login
-session. The pending Terraform module supplies this value for the staged cutover.
-The new proxy chart fixes the name and only accepts that same value if supplied
-by an older module; there is no configurable cookie-name deployment handoff.
-Then remove the old proxy-owned policy resources by upgrading
-the proxy release. Never leave live app routes referencing deleted middleware.
-
-The Terraform/deploy handoff must publish the reference shown above, rather than
-read a policy ConfigMap. Verify namespace-scoped `traefik.io/middlewares` write
-permissions for application deployment. Keep unconverted apps on their current
-proxy/module releases until their deployment scripts and routes are ready.
+Provision the proxy before deploying consuming applications. Deployment supplies
+the proxy reference shown above. Application deployment identities need
+namespace-scoped `traefik.io/middlewares` permissions; static-client-app also
+needs `traefik.io/traefikservices` permissions for its external origin.

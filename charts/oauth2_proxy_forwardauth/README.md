@@ -74,12 +74,6 @@ It calls the proxy's `/` endpoint before rewriting the original path/query;
 ordinary assets stay public. API charts create their own `/oauth2/auth` check.
 Both charts and the proxy Service must use the same application namespace.
 
-**Upgrading an existing release:** configure the existing proxy's cookie name as
-`__Host-session`, then deploy app-owned middleware using the proxy reference and
-clear old policy filters. The name change starts a new login session. Only then upgrade this release,
-which removes the previous proxy-owned middleware/ConfigMap. Old apps must keep
-their compatible proxy chart until their routes are converted.
-
 The client chart owns public `runtimeConfig` and the index marker, including the
 pinned body-plugin requirement. Logging Terraform owns the exact same-origin
 Faro route. Authentication can be omitted without changing SPA route ownership.

@@ -13,8 +13,7 @@ release still owns the resources produced by these helpers.
 - `app-common.client.backend`: container Service or external TraefikService reference.
 - `app-common.client.runtimeConfig`: public inline HTML bootstrap configuration injection.
 
-Nonempty legacy filter lists are rejected; charts own the policies instead of
-accepting caller-authored Gateway filters. Both client charts use the same SPA/config
+Charts own their authentication and header policies. Both client charts use the same SPA/config
 and authentication helpers. Origin-specific resources remain in their charts.
 
 ## Dependencies and releases

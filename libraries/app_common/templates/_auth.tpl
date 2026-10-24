@@ -2,9 +2,6 @@
 {{- define "app-common.auth.middleware" -}}
 {{- $root := .root -}}
 {{- $target := .target -}}
-{{- if $root.Values.routeFilters -}}
-{{- fail "routeFilters has been removed; configure auth with the proxy reference instead" -}}
-{{- end -}}
 {{- if ne $root.Values.auth nil -}}
 {{- $auth := $root.Values.auth -}}
 {{- $service := required "auth.proxyService is required" $auth.proxyService -}}
@@ -13,9 +10,6 @@
 {{- $mode := $auth.mode | default "api-token" -}}
 {{- if or (not (regexMatch "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$" $service)) (gt (len $service) 63) -}}
 {{- fail "auth.proxyService must be a same-namespace Service name" -}}
-{{- end -}}
-{{- if hasKey $auth "cookieName" -}}
-{{- fail "auth.cookieName is not configurable; all app hosts use __Host-session" -}}
 {{- end -}}
 {{- if or (lt (int $port) 1) (gt (int $port) 65535) (ne (float64 $port) (float64 (int $port))) -}}
 {{- fail "auth.proxyPort must be an integer between 1 and 65535" -}}
