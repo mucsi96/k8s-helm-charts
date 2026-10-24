@@ -2,6 +2,7 @@
 staticOrigin: null
 auth: null
 runtimeConfig: {}
+documentResponseHeaders: {}
 gateway:
   name: traefik
   namespace: traefik

@@ -27,6 +27,7 @@ index last and retain old bundles for open browser tabs.
 | `staticOrigin` | Storage `primary_web_host`, without scheme or path | required |
 | `auth` | Same-namespace proxy reference, as in client-app | `null` |
 | `runtimeConfig` | Public string values injected into index HTML | `{}` |
+| `documentResponseHeaders` | Document response headers, including application CSP; cache/auth/validator headers are reserved | `{}` |
 | `gateway` | Gateway name, namespace and section | `traefik`, `traefik`, `websecure` |
 
 The document matching, deep-link rewriting, session and HTML marker contracts

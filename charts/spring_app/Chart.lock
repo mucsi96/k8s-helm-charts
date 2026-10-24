@@ -1,6 +1,6 @@
 dependencies:
 - name: app-common
   repository: file://../../libraries/app_common
-  version: 4.0.0
-digest: sha256:409ef445035af9f63c7756e07417cdd1349d1d3c77cb7e3be5938ccb2d17da31
-generated: "2026-10-24T15:17:27.787939755+02:00"
+  version: 4.1.0
+digest: sha256:5e416294745e41f4b3ec138614579fe923912dee5fe8c6dee78b4926b93fa81b
+generated: "2026-10-24T19:39:21.531002152+02:00"

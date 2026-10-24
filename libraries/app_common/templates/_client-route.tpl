@@ -49,6 +49,13 @@ spec:
             set:
               - name: Cache-Control
                 value: private, no-cache, no-store
+              {{- range $name, $value := .Values.documentResponseHeaders }}
+              {{- if has (lower $name) (list "cache-control" "authorization" "x-auth-request-access-token" "etag" "last-modified") }}
+              {{- fail (printf "documentResponseHeaders cannot override reserved header %s" $name) }}
+              {{- end }}
+              - name: {{ $name | quote }}
+                value: {{ $value | quote }}
+              {{- end }}
             remove: [Authorization, X-Auth-Request-Access-Token, ETag, Last-Modified]
       {{- if ne .Values.auth nil }}
         {{- include "app-common.auth.requestFilters" . | nindent 8 }}
