@@ -59,6 +59,7 @@ def main(*, external=False):
     client_values = {
         'image': 'example/static-origin:1', 'host': 'localhost', 'appPort': origin_port,
         'gateway': values['gateway'], 'runtimeConfig': runtime,
+        'documentResponseHeaders': {'Content-Security-Policy': "default-src 'self'", 'Referrer-Policy': 'no-referrer'},
         'auth': {'proxyService': get('Service', 'oauth2-proxy')['metadata']['name'], 'proxyPort': 80},
     }
     public_runtime = {**runtime, 'clientAppName': 'public-fixture'}
@@ -247,6 +248,8 @@ def main(*, external=False):
                     scripts = re.findall(r'<script[^>]+src="([^"]+)"', body.decode())
                     expected_asset = f'http://localhost:{origin_port}/assets/main-HASH.js' if external else '/assets/main-HASH.js'
                     assert scripts == [expected_asset], 'Nested documents must resolve assets independently of their SPA path'
+                    assert headers['content-security-policy'] == "default-src 'self'"
+                    assert headers['referrer-policy'] == 'no-referrer'
                     asset_status, asset_headers, _, _ = fetch(urljoin(final, scripts[0]))
                     assert asset_status == 200 and 'javascript' in asset_headers.get('Content-Type', '')
             assert len(public_cookies) == 0, 'Public SPA unexpectedly started login'
