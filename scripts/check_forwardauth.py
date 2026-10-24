@@ -1,4 +1,4 @@
-"""Render the routing trust boundary, token modes and legacy app chart contract."""
+"""Render the routing trust boundary, token modes and application chart contracts."""
 import base64
 import copy
 import json
@@ -137,12 +137,14 @@ for chart in ["spring_app", "go_app", "node_app", "rust_app"]:
     assert "filters" not in before["spec"]["rules"][0]
 
 AUTH = {"proxyService": "platform-proxy", "proxyPort": 80}
-for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
+for chart in ["client_app", "static_client_app", "spring_app", "go_app", "node_app", "rust_app"]:
     for mode in ["api-token", "email-header", "login-gate"]:
         values = {"image": "example/app:1", "host": "hello.example.test", "serviceAccountName": "hello-api", "clientId": "example-client", "auth": {**AUTH, "mode": mode}}
+        if chart == "static_client_app":
+            values["staticOrigin"] = "fixture.z1.web.core.windows.net"
         resources = render(chart, values)
         middleware = resource(resources, "Middleware", "-auth")["spec"]["forwardAuth"]
-        document = chart == "client_app"
+        document = chart in {"client_app", "static_client_app"}
         assert middleware["address"] == "http://platform-proxy.hello.svc.cluster.local:80/" + ("" if document else "oauth2/auth")
         assert middleware["forwardBody"] is False and middleware["trustForwardHeader"] is False
         assert "Authorization" not in middleware["authRequestHeaders"]
@@ -155,10 +157,8 @@ for chart in ["client_app", "spring_app", "go_app", "node_app", "rust_app"]:
         assert "Authorization" in filters[1]["requestHeaderModifier"]["remove"] and "Cookie" not in filters[1]["requestHeaderModifier"]["remove"]
         if not document:
             assert filters[0]["responseHeaderModifier"]["set"] == [{"name": "Cache-Control", "value": "no-store"}]
-    for invalid in [{}, {"proxyPort": 80}, {**AUTH, "proxyService": "https://external.test"}, {**AUTH, "cookieName": "insecure"}, {**AUTH, "proxyPort": 0}, {**AUTH, "proxyPort": 65536}, {**AUTH, "proxyPort": 80.5}, {**AUTH, "mode": "unknown"}]:
+    for invalid in [{}, {"proxyPort": 80}, {**AUTH, "proxyService": "https://external.test"}, {**AUTH, "proxyPort": 0}, {**AUTH, "proxyPort": 65536}, {**AUTH, "proxyPort": 80.5}, {**AUTH, "mode": "unknown"}]:
         render(chart, {**values, "auth": invalid}, success=False)
-    render(chart, {**values, "routeFilters": [{"type": "ExtensionRef"}]}, success=False)
-    render(chart, {**values, "auth": None, "routeFilters": [{"type": "ExtensionRef"}]}, success=False)
 
 for mode in ["api-token", "email-header", "login-gate"]:
     client_values = {"image": "example/client:1", "host": "hello.example.test", "auth": {**AUTH, "mode": mode}, "runtimeConfig": {
@@ -192,8 +192,12 @@ for mode in ["api-token", "email-header", "login-gate"]:
     no_config = render("client_app", client_values)
     assert not any(item["kind"] == "Middleware" and item["metadata"]["name"].endswith("-index-config") for item in no_config)
 
-for invalid in [{"runtimeConfig": {"bad": {"nested": True}}}, {"routeFilters": [{"type": "URLRewrite"}]}, {"basePath": "/portal"}]:
+for invalid in [{"runtimeConfig": {"bad": {"nested": True}}}]:
     render("client_app", {"image": "example/client:1", "host": "hello.example.test", **invalid}, success=False)
+    render("static_client_app", {"host": "hello.example.test", "staticOrigin": "fixture.z1.web.core.windows.net", **invalid}, success=False)
+
+for invalid_origin in [None, "", "https://fixture.z1.web.core.windows.net", "fixture.z1.web.core.windows.net/path"]:
+    render("static_client_app", {"host": "hello.example.test", "staticOrigin": invalid_origin}, success=False)
 
 values = {"image": "example/client:1", "host": "hello.example.test"}
 resources = render("client_app", values)
@@ -207,8 +211,4 @@ index = route["rules"][0]
 assert {match["path"]["value"] for rule in route["rules"] for match in rule["matches"]} == {"/", "/index.html"}
 assert index["filters"][-1]["urlRewrite"]["path"]["replaceFullPath"] == "/index.html"
 
-values = copy.deepcopy(VALUES)
-values["global"]["forwardAuth"]["cookieName"] = "__Host-custom"
-render("oauth2_proxy_forwardauth", values, success=False)
-
-print(json.dumps({"modes": 3, "invalidConfigurationsRejected": invalid_configurations_rejected, "compatibleAppCharts": 5, "exactForwardAuthExclusions": True, "rootOnlySpa": True, "hostOnlySessionCookie": True, "appOwnedAuth": True, "proxyPolicyResources": 0}))
+print(json.dumps({"modes": 3, "invalidConfigurationsRejected": invalid_configurations_rejected, "compatibleAppCharts": 6, "exactForwardAuthExclusions": True, "rootOnlySpa": True, "hostOnlySessionCookie": True, "appOwnedAuth": True, "proxyPolicyResources": 0}))

@@ -1,0 +1,1 @@
+{{ include "app-common.client.route" (dict "root" . "external" true "originHost" .Values.staticOrigin) }}

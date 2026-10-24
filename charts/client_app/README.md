@@ -30,6 +30,10 @@ at the repository root first. Published charts already bundle the shared library
 
 ## SPA routing and optional authentication
 
+For Azure Storage hosting, use the dedicated [static-client-app chart](../static_client_app/README.md).
+Both charts reuse SPA routing, authentication and runtime configuration from
+`app-common`; this chart always deploys the client container.
+
 GET/HEAD `/`, `/index.html` and document requests (`Sec-Fetch-Dest: document` or
 HTML in `Accept`) use the document rule. The Gateway selects `/index.html` for
 these requests; nginx/storage only serves actual files and returns 404 for
@@ -127,11 +131,11 @@ experimental:
       version: v0.3.1
 ```
 
-Traefik 3.7.13 preserves the configured filter order. Document responses use
+Traefik 3.7.16 preserves the configured filter order. Document responses use
 `private, no-cache, no-store`; validators, conditional and range headers are
 removed. The origin is requested with `Accept-Encoding: identity` so the plugin
 can replace uncompressed HTML. Immutable assets keep ordinary compression and
-caching. These contracts apply equally to a future storage origin.
+caching. The dedicated static-client-app chart shares these contracts.
 
 For same-origin Faro, logging Terraform owns the exact collector route and
 strips app cookies/bearer/CSRF headers before rewriting to `/collect`. Configure

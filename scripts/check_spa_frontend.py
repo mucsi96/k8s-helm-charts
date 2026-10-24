@@ -36,11 +36,11 @@ def fetch(url, cookies=None, headers=None, data=None, follow=True, method=None):
     return response.status, response.headers, response.read(), response.geturl()
 
 
-def main():
+def main(*, external=False):
     ports = set()
-    while len(ports) < 5:
+    while len(ports) < 6:
         ports.add(free_port())
-    issuer_port, proxy_port, origin_port, gateway_port, kubernetes_port = sorted(ports)
+    issuer_port, proxy_port, origin_port, gateway_port, kubernetes_port, tls_port = sorted(ports)
     public = f'http://localhost:{gateway_port}'
     other_app = f'http://127.0.0.1:{gateway_port}'
     issuer = f'http://localhost:{issuer_port}/default'
@@ -62,14 +62,28 @@ def main():
         'auth': {'proxyService': get('Service', 'oauth2-proxy')['metadata']['name'], 'proxyPort': 80},
     }
     public_runtime = {**runtime, 'clientAppName': 'public-fixture'}
+    if external:
+        client_values.pop('image')
+        client_values['staticOrigin'] = 'localhost'
     client_resources = []
     for release, configuration in [
         ('static-origin', client_values),
         ('public-origin', {**client_values, 'host': '127.0.0.1', 'auth': None, 'runtimeConfig': public_runtime}),
     ]:
-        rendered_client = subprocess.run(['helm', 'template', release, str(ROOT / 'charts/client_app'), '-f', '-'],
+        chart = 'static_client_app' if external else 'client_app'
+        rendered_client = subprocess.run(['helm', 'template', release, str(ROOT / 'charts' / chart), '-f', '-'],
                                          input=yaml.safe_dump(configuration), capture_output=True, text=True, check=True)
         client_resources.extend(item for item in yaml.safe_load_all(rendered_client.stdout) if item)
+    if external:
+        assert not any(item['kind'] in {'Deployment', 'Secret'} for item in client_resources)
+        for item in client_resources:
+            if item['kind'] == 'Service':
+                assert item['spec']['type'] == 'ExternalName'
+                item['spec']['ports'][0]['port'] = tls_port
+            if item['kind'] == 'TraefikService':
+                service = item['spec']['weighted']['services'][0]
+                assert service['scheme'] == 'https' and service['passHostHeader'] is True
+                service['port'] = tls_port
     assert not any(item['kind'] == 'HTTPRoute' and item['metadata']['name'].endswith('-frontend') for item in resources)
     rendered_api = subprocess.run(['helm', 'template', 'api-origin', str(ROOT / 'charts/spring_app'), '-f', '-'],
                                  input=yaml.safe_dump({'image': 'example/api:1', 'host': 'localhost', 'appPort': origin_port,
@@ -89,6 +103,8 @@ def main():
                   whitelist_domains=['localhost:*'], session_store_type='redis', redis_connection_url='redis://127.0.0.1:6379',
                   cookie_secret=base64.b64encode(b'0123456789abcdef0123456789abcdef').decode())
     kubernetes = copy.deepcopy([item for item in [*resources, *client_resources, *api_resources] if item['kind'] in {'HTTPRoute', 'Middleware'}])
+    if external:
+        kubernetes.extend(copy.deepcopy([item for item in client_resources if item['kind'] in {'Service', 'TraefikService'}]))
     for item in kubernetes:
         if item['kind'] == 'Middleware' and 'forwardAuth' in item['spec']:
             auth = item['spec']['forwardAuth']
@@ -107,11 +123,13 @@ def main():
                  {'type': 'RequestHeaderModifier', 'requestHeaderModifier': {'remove': ['Cookie', 'Authorization', 'X-XSRF-TOKEN']}},
                  {'type': 'URLRewrite', 'urlRewrite': {'path': {'type': 'ReplaceFullPath', 'replaceFullPath': '/collect'}}},
              ],
-             'backendRefs': [{'name': 'static-origin', 'port': origin_port}],
+              'backendRefs': [{'name': 'api-origin', 'port': origin_port}],
          }]}},
     ])
     for service, port, target in [('static-origin', origin_port, origin_port), ('public-origin', origin_port, origin_port), ('api-origin', origin_port, origin_port),
                                   (get('Service', 'oauth2-proxy')['metadata']['name'], 80, proxy_port)]:
+        if external and service in {'static-origin', 'public-origin'}:
+            continue
         kubernetes.extend([
             {'apiVersion': 'v1', 'kind': 'Service', 'metadata': {'name': service, 'namespace': 'default'},
              'spec': {'ports': [{'name': 'http', 'port': port, 'targetPort': target, 'protocol': 'TCP'}]}},
@@ -125,6 +143,9 @@ def main():
     name = f'spa-edge-{os.getpid()}'
     with tempfile.TemporaryDirectory(prefix='spa-edge-', dir=os.environ.get('RUNNER_TEMP', '/tmp/opencode')) as temporary:
         directory = Path(temporary)
+        subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
+                        '-keyout', str(directory / 'origin.key'), '-out', str(directory / 'origin.crt'),
+                        '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost'], check=True, capture_output=True)
         plugin = directory / 'plugins/src/github.com/traefik/plugin-rewritebody'
         plugin.parent.mkdir(parents=True)
         subprocess.run(['git', 'clone', '--quiet', '--depth', '1', '--branch', 'v0.3.1', 'https://github.com/traefik/plugin-rewritebody.git', str(plugin)], check=True, capture_output=True)
@@ -135,7 +156,7 @@ def main():
             'entryPoints': {'web': {'address': f':{gateway_port}'}}, 'ping': {'entryPoint': 'web'},
             'providers': {
                 'kubernetesGateway': {'endpoint': f'http://127.0.0.1:{kubernetes_port}', 'statusAddress': {'ip': '127.0.0.1'}},
-                'kubernetesCRD': {'endpoint': f'http://127.0.0.1:{kubernetes_port}'},
+                'kubernetesCRD': {'endpoint': f'http://127.0.0.1:{kubernetes_port}', 'allowExternalNameServices': external},
             },
             'experimental': {'localPlugins': {'rewritebody': {'moduleName': 'github.com/traefik/plugin-rewritebody'}}},
         }))
@@ -153,13 +174,15 @@ def main():
             {'name': 'issuer', 'image': 'ghcr.io/mucsi96/mock-oidc-provider:14', 'env': [{'name': key, 'value': value} for key, value in env.items()], 'volumeMounts': mount,
              'ports': [{'containerPort': issuer_port, 'hostPort': issuer_port}]},
             {'name': 'origin', 'image': 'docker.io/library/python:3.14-alpine', 'command': ['python3', '-B', '-u', '/fixture/spa_origin.py'],
-             'env': [{'name': 'PORT', 'value': str(origin_port)}], 'volumeMounts': [{'name': 'fixture', 'mountPath': '/fixture', 'readOnly': True}],
+              'env': [{'name': 'PORT', 'value': str(origin_port)}, {'name': 'TLS_PORT', 'value': str(tls_port)}],
+              'volumeMounts': [*mount, {'name': 'fixture', 'mountPath': '/fixture', 'readOnly': True}],
              'ports': [{'containerPort': origin_port, 'hostPort': origin_port}]},
             {'name': 'kubernetes', 'image': 'docker.io/library/python:3.14-alpine', 'command': ['python3', '-B', '-u', '/fixture/kubernetes_api.py'],
              'env': [{'name': 'PORT', 'value': str(kubernetes_port)}],
              'volumeMounts': [*mount, {'name': 'fixture', 'mountPath': '/fixture', 'readOnly': True}],
              'ports': [{'containerPort': kubernetes_port, 'hostPort': kubernetes_port}]},
-            {'name': 'gateway', 'image': 'docker.io/library/traefik:v3.7.13', 'args': ['--configFile=/config/traefik.yaml'],
+            {'name': 'gateway', 'image': 'docker.io/library/traefik:v3.7.16', 'args': ['--configFile=/config/traefik.yaml'],
+              'env': [{'name': 'SSL_CERT_FILE', 'value': '/config/origin.crt'}],
              'volumeMounts': [*mount, {'name': 'plugins', 'mountPath': '/plugins-local', 'readOnly': True}],
              'ports': [{'containerPort': gateway_port, 'hostPort': gateway_port}]},
         ]
@@ -252,6 +275,8 @@ def main():
                                           and not item['conditional'] and not item['range'] for item in index_requests)
             assets = [item for item in records if item['path'] in {'/main.js', '/assets/main-HASH.js'}]
             assert assets and all(not item['cookie'] and not item['authorization'] for item in assets)
+            if external:
+                assert all(item['tls'] and item['host'] == 'localhost' for item in [*index_requests, *assets]), 'External origin requires verified TLS and native Gateway hostname rewriting'
             telemetry = next(item for item in records if item['path'] == '/collect')
             assert not telemetry['cookie'] and not telemetry['authorization'] and not telemetry['xsrf']
             objects = json.loads(fetch(f'http://localhost:{kubernetes_port}/objects')[2])

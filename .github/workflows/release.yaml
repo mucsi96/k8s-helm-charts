@@ -41,6 +41,14 @@ jobs:
           suffix: '.0.0'
           src: charts/client_app
 
+      - name: Get next version for static-client-app
+        id: static-client-app-version
+        uses: mucsi96/get-next-version@main
+        with:
+          prefix: static-client-app
+          suffix: '.0.0'
+          src: charts/static_client_app
+
       - name: Get next version for spring-app
         id: spring-app-version
         uses: mucsi96/get-next-version@main
@@ -100,6 +108,7 @@ jobs:
       - name: Update chart versions
         run: |
           python3 scripts/set_chart_version.py charts/client_app/Chart.yaml "${{ steps.client-app-version.outputs.version }}" "${{ steps.client-app-version.outputs.tag }}"
+          python3 scripts/set_chart_version.py charts/static_client_app/Chart.yaml "${{ steps.static-client-app-version.outputs.version }}" "${{ steps.static-client-app-version.outputs.tag }}"
           python3 scripts/set_chart_version.py charts/spring_app/Chart.yaml "${{ steps.spring-app-version.outputs.version }}" "${{ steps.spring-app-version.outputs.tag }}"
           python3 scripts/set_chart_version.py charts/go_app/Chart.yaml "${{ steps.go-app-version.outputs.version }}" "${{ steps.go-app-version.outputs.tag }}"
           python3 scripts/set_chart_version.py charts/rust_app/Chart.yaml "${{ steps.rust-app-version.outputs.version }}" "${{ steps.rust-app-version.outputs.tag }}"
@@ -121,6 +130,7 @@ jobs:
           python3 scripts/check_forwardauth.py
           python3 scripts/check_forwardauth_login.py
           python3 scripts/check_spa_frontend.py
+          python3 scripts/check_static_spa_frontend.py
           python3 scripts/check_rust_app.py
 
       - name: Run chart-releaser

@@ -1,1 +1,1 @@
-{{- include "p07.auth.middleware" (dict "root" . "target" "api") }}
+{{- include "app-common.auth.middleware" (dict "root" . "target" "api") }}

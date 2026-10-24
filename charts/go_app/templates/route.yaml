@@ -1,1 +1,1 @@
-{{- include "p07.api.route" . }}
+{{- include "app-common.api.route" . }}

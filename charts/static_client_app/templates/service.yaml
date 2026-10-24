@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+spec:
+  type: ExternalName
+  externalName: {{ required "staticOrigin is required" .Values.staticOrigin | quote }}
+  ports:
+    - port: 443
+      protocol: TCP
+      name: https

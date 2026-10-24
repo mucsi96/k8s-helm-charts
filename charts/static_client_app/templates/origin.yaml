@@ -1,0 +1,38 @@
+apiVersion: traefik.io/v1alpha1
+kind: TraefikService
+metadata:
+  name: {{ .Release.Name }}-origin
+  namespace: {{ .Release.Namespace }}
+spec:
+  weighted:
+    services:
+      - name: {{ .Release.Name }}
+        port: 443
+        scheme: https
+        # HTTPRoute's native URLRewrite sets the storage hostname after auth.
+        passHostHeader: true
+        weight: 1
+---
+# Traefik 3.7 ignores backend-level filters on TraefikService references.
+# Run this at route level AFTER ForwardAuth, preserving cookies during login.
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: {{ .Release.Name }}-origin-headers
+  namespace: {{ .Release.Namespace }}
+spec:
+  headers:
+    customRequestHeaders:
+      Authorization: ""
+      Cookie: ""
+      X-XSRF-TOKEN: ""
+      X-Auth-Request-Email: ""
+      X-Auth-Request-Access-Token: ""
+      X-Auth-Request-User: ""
+      X-Forwarded-User: ""
+      X-Forwarded-Email: ""
+      If-None-Match: ""
+      If-Modified-Since: ""
+      Range: ""
+      If-Range: ""
+      Accept-Encoding: identity

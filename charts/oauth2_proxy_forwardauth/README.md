@@ -50,7 +50,7 @@ application authentication Middleware or policy ConfigMap.
 Client and API charts receive the proxy Service, port and mode via
 their `auth` value and create their own middleware and filters. Terraform can
 publish that non-secret reference in app Key Vault; no policy readback is needed.
-See [application authentication and upgrade order](../../docs/application-auth.md).
+See [application authentication](../../docs/application-auth.md).
 
 For protected service UIs, the document authenticator starts login through a
 static-202 upstream. The API authenticator uses internal `/oauth2/auth` and
@@ -74,12 +74,6 @@ It calls the proxy's `/` endpoint before rewriting the original path/query;
 ordinary assets stay public. API charts create their own `/oauth2/auth` check.
 Both charts and the proxy Service must use the same application namespace.
 
-**Upgrading an existing release:** configure the existing proxy's cookie name as
-`__Host-session`, then deploy app-owned middleware using the proxy reference and
-clear old policy filters. The name change starts a new login session. Only then upgrade this release,
-which removes the previous proxy-owned middleware/ConfigMap. Old apps must keep
-their compatible proxy chart until their routes are converted.
-
 The client chart owns public `runtimeConfig` and the index marker, including the
 pinned body-plugin requirement. Logging Terraform owns the exact same-origin
 Faro route. Authentication can be omitted without changing SPA route ownership.
@@ -94,8 +88,7 @@ Never expose
 in response headers. `/userinfo` is token-free; `/sign_out` is local app logout,
 not Entra-wide logout. A protected document can immediately restart Entra SSO.
 These handlers are provided by stock oauth2-proxy. Gateway-owned document
-authentication starts login before serving index HTML. Legacy app-owned
-bootstrap can still select `/oauth2/start` when a session is needed.
+authentication starts login before serving index HTML.
 Entra redirects to `/oauth2/callback`,
 registered by Terraform. The chart's `oauth-route.yaml` forwards those requests through
 Traefik to the proxy. The SPAs read token-free `/oauth2/userinfo` for header
@@ -173,7 +166,7 @@ generated configuration or enable a second upstream public route.
 ## Standard API support
 
 Gateway API v1.6.3 defines `ExternalAuth` in its experimental channel. Traefik
-v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and p07's v1.6.1
+v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and v1.6.1
 standard-channel CRDs do not expose it. The ForwardAuth Middleware CRDs are
 therefore implementation-specific. Optional inline configuration adds one
 plugin Middleware in the client chart; routing, header policies, Services and

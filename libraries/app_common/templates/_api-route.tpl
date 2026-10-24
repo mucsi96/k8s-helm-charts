@@ -1,4 +1,4 @@
-{{- define "p07.api.route" -}}
+{{- define "app-common.api.route" -}}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -20,7 +20,7 @@ spec:
             value: {{ .Values.basePath | default "/" | quote }}
       {{- if ne .Values.auth nil }}
       filters:
-        {{- include "p07.auth.apiFilters" . | nindent 8 }}
+        {{- include "app-common.auth.apiFilters" . | nindent 8 }}
       {{- end }}
       backendRefs:
         - name: {{ .Release.Name }}

@@ -9,6 +9,7 @@ This repository contains reusable Helm charts for deploying various types of app
 ## Available Charts
 
 - [client_app](#client_app) - Static frontend applications (nginx-based)
+- [static_client_app](charts/static_client_app/README.md) - Static frontends on Azure Storage or external HTTPS origins, without client pods
 - [node_app](#node_app) - Node.js backend applications
 - [spring_app](#spring_app) - Spring Boot Java applications
 - [go_app](#go_app) - Go HTTP applications with a management listener
@@ -212,8 +213,8 @@ persistentVolumeClaims:
     storage: 5Gi
 ```
 
-See [Go App Helm Chart](charts/go_app/README.md) for the complete values and
-Spring-to-Go migration guide. The existing release workflow publishes it as
+See [Go App Helm Chart](charts/go_app/README.md) for the complete values.
+The release workflow publishes it as
 `mucsi96/go-app` using the `go-app` version prefix.
 
 ---
@@ -235,7 +236,7 @@ auth:
 ```
 
 See [Rust App Helm Chart](charts/rust_app/README.md) for identity, configuration,
-PVC, authentication and Observatory-style adoption examples. The release workflow
+PVC, authentication and service-account configuration examples. The release workflow
 publishes `mucsi96/rust-app` using the `rust-app` version prefix.
 
 ---
@@ -391,9 +392,10 @@ Charts include:
 
 ### Shared chart utilities
 
-Client, Spring, Go, Node and Rust charts use the local Helm library
+Container/static client, Spring, Go, Node and Rust charts use the local Helm library
 [`libraries/app_common`](libraries/app_common/README.md) for authentication
 middleware/filters. The four backend charts also share their API HTTPRoute.
+Both client charts share their SPA HTTPRoute and inline runtime configuration.
 Application releases still own these resources; the library runs no workloads.
 
 After checkout, run `python3 scripts/build_app_dependencies.py` before rendering
@@ -403,9 +405,8 @@ bump for all consumers; CI verifies both release bookkeeping and package portabi
 
 ### Chart release versioning
 
-Charts publish major-only SemVer tags (`<chart>-N.0.0`); older releases used
-integer tags (`<chart>-N`). The shared `get-next-version` action is configured
-with `suffix: '.0.0'`, recognizing both formats directly. It owns source-change
+Charts publish major-only SemVer tags (`<chart>-N.0.0`). The shared
+`get-next-version` action is configured with `suffix: '.0.0'`. It owns source-change
 and highest-version selection; no runner-local tag aliases are needed.
 
 `set_chart_version.py` validates the returned counter/tag against the chart name

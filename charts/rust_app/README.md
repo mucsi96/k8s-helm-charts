@@ -110,9 +110,6 @@ extraVolumeMounts:
 The platform must own that account's RBAC. Supplying `clientId` enables Azure
 workload identity without granting vault/storage permissions. For a reused
 account, its Azure annotation must already be managed by its owner.
-Keep existing PVC names and volume bindings when adopting persisted data. Check
-Helm resource ownership before migrating a Terraform-owned workload; the chart
-does not change application registrations, permissions or data schemas.
 
 ## Local validation
 

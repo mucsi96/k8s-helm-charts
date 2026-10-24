@@ -47,7 +47,8 @@ def main():
         for name in APP_CHARTS:
             chart = ROOT / 'charts' / name
             metadata = yaml.safe_load((chart / 'Chart.yaml').read_text())
-            if args.compare_ref and (baseline / 'libraries/app_common').exists():
+            baseline_chart = baseline / 'charts' / name
+            if args.compare_ref and baseline_chart.exists() and (baseline / 'libraries/app_common').exists():
                 subprocess.run(['helm', 'dependency', 'build', '--skip-refresh', str(baseline / 'charts' / name)], capture_output=True, check=True)
             expected = {'name': library['name'], 'version': library['version'], 'repository': 'file://../../libraries/app_common'}
             assert metadata['dependencies'] == [expected]
@@ -57,18 +58,20 @@ def main():
             with tarfile.open(package) as archive:
                 assert any('/charts/app-common/templates/' in item.name for item in archive), 'Published chart must bundle its shared templates'
             values = {'image': 'example/app:1', 'host': 'app.example.test', 'clientId': 'fixture', 'serviceAccountName': 'fixture'}
+            if name == 'static_client_app':
+                values = {'host': 'app.example.test', 'staticOrigin': 'fixture.z1.web.core.windows.net'}
             variants = [values]
             variants.extend({**values, 'auth': {'proxyService': 'fixture-proxy', 'mode': mode}} for mode in ['api-token', 'email-header', 'login-gate'])
-            if name == 'client_app':
+            if name in {'client_app', 'static_client_app'}:
                 variants.append({**variants[1], 'runtimeConfig': {'clientAppName': 'fixture', 'clientLogUrl': 'https://app.example.test/_telemetry/collect'}})
             else:
                 variants.append({**variants[1], 'basePath': '/api/v1', 'appPort': 8090})
             for variant in variants:
                 rendered = render(chart, variant)
                 assert render(package, variant) == rendered, f'{name}: packaged chart changed behavior'
-                if args.compare_ref:
+                if args.compare_ref and baseline_chart.exists():
                     assert render(baseline / 'charts' / name, variant) == rendered, f'{name}: refactor changed rendered resources'
-    print('Shared library versions and all five self-contained app packages verified' + ('; rendered resources match baseline' if args.compare_ref else ''))
+    print('Shared library versions and all self-contained app packages verified' + ('; existing charts match baseline' if args.compare_ref else ''))
 
 
 if __name__ == '__main__':
