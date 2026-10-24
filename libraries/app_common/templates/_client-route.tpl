@@ -49,12 +49,13 @@ spec:
             set:
               - name: Cache-Control
                 value: private, no-cache, no-store
-              {{- range $name, $value := .Values.documentResponseHeaders }}
-              {{- if has (lower $name) (list "cache-control" "authorization" "x-auth-request-access-token" "etag" "last-modified") }}
-              {{- fail (printf "documentResponseHeaders cannot override reserved header %s" $name) }}
-              {{- end }}
-              - name: {{ $name | quote }}
-                value: {{ $value | quote }}
+              - name: Referrer-Policy
+                value: no-referrer
+              - name: X-Content-Type-Options
+                value: nosniff
+              {{- with .Values.contentSecurityPolicy }}
+              - name: Content-Security-Policy
+                value: {{ . | quote }}
               {{- end }}
             remove: [Authorization, X-Auth-Request-Access-Token, ETag, Last-Modified]
       {{- if ne .Values.auth nil }}

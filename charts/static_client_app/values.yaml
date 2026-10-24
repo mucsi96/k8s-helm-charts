@@ -2,7 +2,8 @@
 staticOrigin: null
 auth: null
 runtimeConfig: {}
-documentResponseHeaders: {}
+# Referrer-Policy=no-referrer and X-Content-Type-Options=nosniff are fixed.
+contentSecurityPolicy: null
 gateway:
   name: traefik
   namespace: traefik

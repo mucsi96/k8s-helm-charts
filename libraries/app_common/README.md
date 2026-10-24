@@ -16,6 +16,10 @@ release still owns the resources produced by these helpers.
 Charts own their authentication and header policies. Both client charts use the same SPA/config
 and authentication helpers. Origin-specific resources remain in their charts.
 
+SPA document responses always set `Referrer-Policy: no-referrer` and
+`X-Content-Type-Options: nosniff`. Both client charts accept an application-specific
+`contentSecurityPolicy`; all other document headers are fixed.
+
 ## Dependencies and releases
 
 Consumer Chart.yaml files pin this library using `file://../../libraries/app_common`.
