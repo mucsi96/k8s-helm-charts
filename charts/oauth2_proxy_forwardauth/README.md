@@ -50,7 +50,7 @@ application authentication Middleware or policy ConfigMap.
 Client and API charts receive the proxy Service, port and mode via
 their `auth` value and create their own middleware and filters. Terraform can
 publish that non-secret reference in app Key Vault; no policy readback is needed.
-See [application authentication and upgrade order](../../docs/application-auth.md).
+See [application authentication](../../docs/application-auth.md).
 
 For protected service UIs, the document authenticator starts login through a
 static-202 upstream. The API authenticator uses internal `/oauth2/auth` and
@@ -88,8 +88,7 @@ Never expose
 in response headers. `/userinfo` is token-free; `/sign_out` is local app logout,
 not Entra-wide logout. A protected document can immediately restart Entra SSO.
 These handlers are provided by stock oauth2-proxy. Gateway-owned document
-authentication starts login before serving index HTML. Legacy app-owned
-bootstrap can still select `/oauth2/start` when a session is needed.
+authentication starts login before serving index HTML.
 Entra redirects to `/oauth2/callback`,
 registered by Terraform. The chart's `oauth-route.yaml` forwards those requests through
 Traefik to the proxy. The SPAs read token-free `/oauth2/userinfo` for header

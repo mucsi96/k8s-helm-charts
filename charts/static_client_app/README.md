@@ -6,11 +6,11 @@ The chart owns only the app's routing resources and middleware. SPA routing,
 document authentication and inline runtime config reuse the `app-common` library
 used by `client-app`; they are not separate implementations.
 
-## Installation and migration
+## Installation
 
 ```bash
-helm upgrade --install hello-client mucsi96/static-client-app \
-  --namespace hello --reset-values \
+helm install hello-client mucsi96/static-client-app \
+  --namespace hello \
   --set host=hello.example.com \
   --set staticOrigin=example.z1.web.core.windows.net \
   --set auth.proxyService=hello-oauth2-proxy \
@@ -18,9 +18,6 @@ helm upgrade --install hello-client mucsi96/static-client-app \
   --set runtimeConfig.clientLogUrl=https://hello.example.com/_telemetry/collect
 ```
 
-When replacing `client-app`, retain the release name and use `--reset-values`.
-Helm removes its Deployment/environment Secret, changes the Service to
-ExternalName, and retains the route and middleware names. No uninstall is needed.
 Storage provisioning and artifact uploads remain outside this chart. Publish
 index last and retain old bundles for open browser tabs.
 
@@ -56,10 +53,6 @@ identity namespace-scoped TraefikService permissions. Traefik also ignores backe
 filters on TraefikService references: document cookie/conditional/range stripping
 uses a route-level Middleware after ForwardAuth. ForwardAuth and response-body
 config injection use the shared Traefik middleware integration as before.
-
-An upgrade from 3.7.13 to 3.7.16 brings Gateway routing/security fixes, but does not
-remove the need for these extensions. Coordinate controller upgrades with the
-platform's k3s-owned Traefik release; installing this chart does not upgrade it.
 
 ## Development
 

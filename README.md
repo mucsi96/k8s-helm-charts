@@ -213,8 +213,8 @@ persistentVolumeClaims:
     storage: 5Gi
 ```
 
-See [Go App Helm Chart](charts/go_app/README.md) for the complete values and
-Spring-to-Go migration guide. The existing release workflow publishes it as
+See [Go App Helm Chart](charts/go_app/README.md) for the complete values.
+The release workflow publishes it as
 `mucsi96/go-app` using the `go-app` version prefix.
 
 ---
@@ -236,7 +236,7 @@ auth:
 ```
 
 See [Rust App Helm Chart](charts/rust_app/README.md) for identity, configuration,
-PVC, authentication and Observatory-style adoption examples. The release workflow
+PVC, authentication and service-account configuration examples. The release workflow
 publishes `mucsi96/rust-app` using the `rust-app` version prefix.
 
 ---
@@ -405,9 +405,8 @@ bump for all consumers; CI verifies both release bookkeeping and package portabi
 
 ### Chart release versioning
 
-Charts publish major-only SemVer tags (`<chart>-N.0.0`); older releases used
-integer tags (`<chart>-N`). The shared `get-next-version` action is configured
-with `suffix: '.0.0'`, recognizing both formats directly. It owns source-change
+Charts publish major-only SemVer tags (`<chart>-N.0.0`). The shared
+`get-next-version` action is configured with `suffix: '.0.0'`. It owns source-change
 and highest-version selection; no runner-local tag aliases are needed.
 
 `set_chart_version.py` validates the returned counter/tag against the chart name

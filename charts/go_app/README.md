@@ -66,25 +66,7 @@ The Go chart creates its own Middleware, strips untrusted identity before the
 API auth check and protects response headers. `auth: null` keeps routing public.
 Manual filter lists are not supported. The API still validates JWTs/roles and
 protects cookie-authenticated mutations against CSRF. See
-[application authentication](../../docs/application-auth.md) for modes and upgrade order.
-
-## Migrating from spring-app
-
-Use the same Helm release name and existing `image`, `host`, `basePath`,
-`clientId`, `serviceAccountName`, `env`, `configFile`, `persistentVolumeClaims`
-and `resources` values, changing the chart name to `mucsi96/go-app`.
-
-Replace `springActuatorPort` with `managementPort` if overridden. The default
-remains 8082; its named port changes from `actuator` to `management`.
-Spring Admin and servlet-context environment variables are not emitted.
-The Go service implements `/health/liveness` and `/health/readiness` directly;
-these endpoints do not depend on Spring Actuator. Override `health` paths if
-the service uses different endpoints.
-Readiness is checked in addition to the existing startup and liveness probes.
-The route continues to attach to the shared Traefik `websecure` Gateway listener.
-
-PVC definitions and mounted paths are unchanged. Environment and config secrets
-and the workload identity service account retain their existing resource names.
+[application authentication](../../docs/application-auth.md) for supported modes.
 
 ## Local validation
 
