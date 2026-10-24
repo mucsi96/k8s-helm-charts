@@ -3,13 +3,6 @@
 {{- $external := .external | default false -}}
 {{- $originHost := .originHost -}}
 {{- with .root -}}
-{{- $documentHeaders := dict "referrer-policy" "no-referrer" "x-content-type-options" "nosniff" -}}
-{{- range $name, $value := .Values.documentResponseHeaders -}}
-{{- if has (lower $name) (list "cache-control" "authorization" "x-auth-request-access-token" "etag" "last-modified") -}}
-{{- fail (printf "documentResponseHeaders cannot override reserved header %s" $name) -}}
-{{- end -}}
-{{- $_ := set $documentHeaders (lower $name) $value -}}
-{{- end -}}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -56,9 +49,13 @@ spec:
             set:
               - name: Cache-Control
                 value: private, no-cache, no-store
-              {{- range $name, $value := $documentHeaders }}
-              - name: {{ $name | quote }}
-                value: {{ $value | quote }}
+              - name: Referrer-Policy
+                value: no-referrer
+              - name: X-Content-Type-Options
+                value: nosniff
+              {{- with .Values.contentSecurityPolicy }}
+              - name: Content-Security-Policy
+                value: {{ . | quote }}
               {{- end }}
             remove: [Authorization, X-Auth-Request-Access-Token, ETag, Last-Modified]
       {{- if ne .Values.auth nil }}

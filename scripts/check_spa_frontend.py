@@ -59,7 +59,7 @@ def main(*, external=False):
     client_values = {
         'image': 'example/static-origin:1', 'host': 'localhost', 'appPort': origin_port,
         'gateway': values['gateway'], 'runtimeConfig': runtime,
-        'documentResponseHeaders': {'Content-Security-Policy': "default-src 'self'"},
+        'contentSecurityPolicy': "default-src 'self'",
         'auth': {'proxyService': get('Service', 'oauth2-proxy')['metadata']['name'], 'proxyPort': 80},
     }
     public_runtime = {**runtime, 'clientAppName': 'public-fixture'}
