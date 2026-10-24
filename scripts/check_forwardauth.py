@@ -174,7 +174,11 @@ for mode in ["api-token", "email-header", "login-gate"]:
     assert [item["type"] for item in index["filters"]] == ["ResponseHeaderModifier", "RequestHeaderModifier", "ExtensionRef", "ExtensionRef", "URLRewrite"]
     assert index["filters"][2]["extensionRef"]["name"] == "hello-oauth2-proxy-auth"
     cache = index["filters"][0]["responseHeaderModifier"]
-    assert cache["set"] == [{"name": "Cache-Control", "value": "private, no-cache, no-store"}]
+    assert cache["set"] == [
+        {"name": "Cache-Control", "value": "private, no-cache, no-store"},
+        {"name": "Referrer-Policy", "value": "no-referrer"},
+        {"name": "X-Content-Type-Options", "value": "nosniff"},
+    ]
     assert "Authorization" in cache["remove"] and "ETag" in cache["remove"]
     origin = index["backendRefs"][0]
     headers = origin["filters"][0]["requestHeaderModifier"]
