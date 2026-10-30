@@ -3,7 +3,7 @@
 Hosts a SPA from an external HTTPS static website, including Azure Storage, with
 no client Deployment, environment Secret, image, resource requests or probes.
 The chart owns only the app's routing resources and middleware. SPA routing,
-document authentication and inline runtime config reuse the `app-common` library
+document authentication and optional inline runtime config reuse the `app-common` library
 used by `client-app`; they are not separate implementations.
 
 ## Installation
@@ -13,13 +13,18 @@ helm install hello-client mucsi96/static-client-app \
   --namespace hello \
   --set host=hello.example.com \
   --set staticOrigin=example.z1.web.core.windows.net \
-  --set auth.proxyService=hello-oauth2-proxy \
-  --set runtimeConfig.clientAppName=hello-client \
-  --set runtimeConfig.clientLogUrl=https://hello.example.com/_telemetry/collect
+  --set auth.proxyService=hello-oauth2-proxy
 ```
 
 Storage provisioning and artifact uploads remain outside this chart. Publish
 index last and retain old bundles for open browser tabs.
+
+Skeleton, Cooking and Observatory compile Faro's app name and same-origin
+collector path into their bundles. Leave `runtimeConfig` empty (the default):
+neither an index-config Middleware nor a route reference to it is rendered.
+Use `helm upgrade --reset-values` with the complete intended values to remove
+previous injection settings. Their documents require no rewritebody plugin or
+HTML configuration marker; authentication, SPA URL rewriting and headers still apply.
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
