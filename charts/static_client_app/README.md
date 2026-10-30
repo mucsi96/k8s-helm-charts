@@ -21,8 +21,7 @@ helm install hello-client mucsi96/static-client-app \
 
 The gateway authenticates before rewriting deep links to `/index.html`, strips
 credentials, verifies origin TLS and sets no-store, no-referrer and nosniff.
-The API retains its own authorization. Use `--reset-values` when upgrading;
-the removed `runtimeConfig` value is rejected.
+The API retains its own authorization. Use `--reset-values` when upgrading.
 
 Assets load directly from public Blob URLs with `crossorigin="anonymous"` and
 app-origin CORS. Keep navigation, APIs and telemetry on the app origin. Upload
