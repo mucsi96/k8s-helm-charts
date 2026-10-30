@@ -61,7 +61,7 @@ spec:
       {{- if ne .Values.auth nil }}
         {{- include "app-common.auth.requestFilters" . | nindent 8 }}
       {{- end }}
-      {{- if .Values.runtimeConfig }}
+      {{- if and (not $external) .Values.runtimeConfig }}
         - type: ExtensionRef
           extensionRef:
             group: traefik.io

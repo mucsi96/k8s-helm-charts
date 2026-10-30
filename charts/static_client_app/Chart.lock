@@ -1,6 +1,6 @@
 dependencies:
 - name: app-common
   repository: file://../../libraries/app_common
-  version: 5.0.0
-digest: sha256:c6c5d5106379f52a98381fcf982512d068704d26ccd3e37cee0daf291790b998
-generated: "2026-10-24T20:33:02.356725339+02:00"
+  version: 6.0.0
+digest: sha256:3b67ab5a28bb2d16dae4afaef1507a35eb54aea859e5eaa0b59def291061ed04
+generated: "2026-10-30T15:10:19.064214775+01:00"

@@ -200,8 +200,7 @@ for invalid in [{"runtimeConfig": {"bad": {"nested": True}}}]:
     render("client_app", {"image": "example/client:1", "host": "hello.example.test", **invalid}, success=False)
     render("static_client_app", {"host": "hello.example.test", "staticOrigin": "fixture.z1.web.core.windows.net", **invalid}, success=False)
 
-# All three static clients compile Faro settings into their bundles. Default
-# values must remove both the body-rewrite resource and its route reference.
+# Static clients never rewrite document bodies.
 for mode in ["api-token", "email-header", "login-gate"]:
     built_client = render("static_client_app", {
         "host": "hello.example.test", "staticOrigin": "fixture.z1.web.core.windows.net",
@@ -212,6 +211,12 @@ for mode in ["api-token", "email-header", "login-gate"]:
     assert not any(item.get("extensionRef", {}).get("name", "").endswith("-index-config") for item in filters)
     assert any(item.get("extensionRef", {}).get("name", "").endswith("-auth") for item in filters)
     assert any(item["type"] == "URLRewrite" for item in filters)
+
+for obsolete in [{}, {"clientAppName": "fixture"}, None]:
+    render("static_client_app", {
+        "host": "hello.example.test", "staticOrigin": "fixture.z1.web.core.windows.net",
+        "runtimeConfig": obsolete,
+    }, success=False)
 
 for invalid_origin in [None, "", "https://fixture.z1.web.core.windows.net", "fixture.z1.web.core.windows.net/path"]:
     render("static_client_app", {"host": "hello.example.test", "staticOrigin": invalid_origin}, success=False)

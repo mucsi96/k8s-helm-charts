@@ -1,7 +1,6 @@
 # Required: Azure Storage primary_web_host, without a scheme or path.
 staticOrigin: null
 auth: null
-runtimeConfig: {}
 # Referrer-Policy=no-referrer and X-Content-Type-Options=nosniff are fixed.
 contentSecurityPolicy: null
 gateway:

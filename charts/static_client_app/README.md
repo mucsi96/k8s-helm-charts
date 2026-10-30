@@ -1,12 +1,7 @@
-# Static Client App Helm Chart
+# Static Client App
 
-Hosts a SPA from an external HTTPS static website, including Azure Storage, with
-no client Deployment, environment Secret, image, resource requests or probes.
-The chart owns only the app's routing resources and middleware. SPA routing,
-document authentication and optional inline runtime config reuse the `app-common` library
-used by `client-app`; they are not separate implementations.
-
-## Installation
+Authenticated SPA documents from an external HTTPS origin, without a client
+Deployment. Configuration belongs in the build; document bodies are not rewritten.
 
 ```bash
 helm install hello-client mucsi96/static-client-app \
@@ -16,74 +11,26 @@ helm install hello-client mucsi96/static-client-app \
   --set auth.proxyService=hello-oauth2-proxy
 ```
 
-Storage provisioning and artifact uploads remain outside this chart. Publish
-index last and retain old bundles for open browser tabs.
+| Value | Default |
+| --- | --- |
+| `host` | Required application hostname |
+| `staticOrigin` | Required HTTPS origin hostname, without scheme/path |
+| `auth` | `null` (public); otherwise same-namespace proxy reference |
+| `contentSecurityPolicy` | `null` |
+| `gateway` | `traefik` / `traefik` / `websecure` |
 
-Skeleton, Cooking and Observatory compile Faro's app name and same-origin
-collector path into their bundles. Leave `runtimeConfig` empty (the default):
-neither an index-config Middleware nor a route reference to it is rendered.
-Use `helm upgrade --reset-values` with the complete intended values to remove
-previous injection settings. Their documents require no rewritebody plugin or
-HTML configuration marker; authentication, SPA URL rewriting and headers still apply.
+The gateway authenticates before rewriting deep links to `/index.html`, strips
+credentials, verifies origin TLS and sets no-store, no-referrer and nosniff.
+The API retains its own authorization. Use `--reset-values` when upgrading;
+the removed `runtimeConfig` value is rejected.
 
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `host` | Application hostname | required |
-| `staticOrigin` | Storage `primary_web_host`, without scheme or path | required |
-| `auth` | Same-namespace proxy reference, as in client-app | `null` |
-| `runtimeConfig` | Public string values injected into index HTML | `{}` |
-| `contentSecurityPolicy` | Application Content-Security-Policy for document responses | `null` |
-| `gateway` | Gateway name, namespace and section | `traefik`, `traefik`, `websecure` |
+Assets load directly from public Blob URLs with `crossorigin="anonymous"` and
+app-origin CORS. Keep navigation, APIs and telemetry on the app origin. Upload
+assets before index and retain old bundles. Storage contains public build files.
 
-The document matching, deep-link rewriting, session and HTML marker contracts
-are shared with [client-app](../client_app/README.md). This chart has no asset
-catchall: browser assets must use absolute storage URLs. Leave Azure's error
-document unset. Only public build files belong in storage;
-Azure's website endpoint is anonymously readable even though the app hostname
-authenticates document requests. The API retains its own authorization.
+Requires Traefik's CRD provider with `allowExternalNameServices` and deployer
+permissions for Middleware/TraefikService. ExternalName-backed TraefikService
+provides HTTPS origin access; the chart has no asset catchall.
 
-## Direct assets and CORS
-
-Document responses always set `Referrer-Policy: no-referrer` and
-`X-Content-Type-Options: nosniff`. Only `contentSecurityPolicy` is configurable;
-the other document headers are fixed. These shared policies also
-apply to container clients. Direct Blob asset responses are controlled by Azure.
-
-Publish scripts, module preloads, styles, icons and manifests with absolute storage
-URLs and `crossorigin="anonymous"`. Keep `<base href="/">` so navigation and APIs
-stay on the application hostname. Module imports and external CSS font URLs resolve
-relative to their storage-hosted parents; inline CSS asset URLs must be absolute.
-Manifest `id`, `start_url` and `scope` must reference the application origin.
-
-Azure static website endpoints do not support CORS. Use the website endpoint for
-gateway document fetches, and a public-read Blob container for browser assets.
-Configure Blob CORS for the application's HTTPS origin and GET/HEAD/OPTIONS.
-See [Azure's limitations](https://learn.microsoft.com/azure/storage/blobs/storage-blob-static-website#viewing-content).
-
-## Gateway API and Traefik
-
-Validated with **Traefik 3.7.16**, which supports **Gateway API 1.6.3**. The chart uses
-`gateway.networking.k8s.io/v1` HTTPRoute with native match rules, URLRewrite (path
-and storage hostname), and request/response header filters. Document rewrites run
-after ForwardAuth so login returns to the original application URL.
-
-Traefik 3.7.16 still rejects direct ExternalName Service references in HTTPRoute.
-The route therefore references a same-namespace TraefikService, backed by an
-ExternalName Service, for DNS resolution and HTTPS on port 443 with normal TLS
-certificate verification. Native URLRewrite sets the storage Host header.
-BackendTLSPolicy cannot remove this limitation for an external DNS origin.
-
-Enable `providers.kubernetesCRD.allowExternalNameServices` and grant the deploy
-identity namespace-scoped TraefikService permissions. Traefik also ignores backend
-filters on TraefikService references: document cookie/conditional/range stripping
-uses a route-level Middleware after ForwardAuth. ForwardAuth and response-body
-config injection use the shared Traefik middleware integration as before.
-
-## Development
-
-Run `python3 scripts/build_app_dependencies.py`, then
-`python3 scripts/check_static_spa_frontend.py`. The shared suite tests
-real Traefik, proxy login, TLS/Host handling, deep links, missing assets, config
-injection, credential stripping, API isolation and telemetry. Run
-`python3 scripts/check_spa_frontend.py` to check the container-hosted chart with
-the same assertions.
+Checks: `scripts/build_app_dependencies.py`, `scripts/check_forwardauth.py` and
+`scripts/check_static_spa_frontend.py` (real Traefik/auth/TLS integration).

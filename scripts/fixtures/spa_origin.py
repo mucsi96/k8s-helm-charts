@@ -9,6 +9,7 @@ import threading
 requests = []
 INDEX = b'''<!doctype html><html><head><script>window.__APP_CONFIG__ = "__APP_CONFIG_JSON__";</script></head><body><script src="/assets/main-HASH.js"></script></body></html>'''
 if os.environ.get('ASSET_ORIGIN'):
+    INDEX = INDEX.replace(b'<script>window.__APP_CONFIG__ = "__APP_CONFIG_JSON__";</script>', b'')
     INDEX = INDEX.replace(b'src="/assets/', f'src="{os.environ["ASSET_ORIGIN"]}/assets/'.encode())
 ASSETS = {'/main.js', '/assets/main-HASH.js'}
 
