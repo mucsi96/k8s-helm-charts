@@ -1,52 +1,17 @@
-# Client App Helm Chart
+# Client App
 
-A Helm chart for deploying static frontend applications served by nginx.
-The client release always owns its SPA document and static-asset HTTPRoute,
-independently of whether authentication or runtime injection is configured.
+Container-hosted SPA with chart-owned document routing and optional authentication.
+For external HTTPS storage use [static-client-app](../static_client_app/README.md).
+Both charts share routing and authentication through `app-common`.
 
-## Installation
-
-```bash
-helm repo add mucsi96 https://mucsi96.github.io/k8s-helm-charts
-helm repo update
-helm install my-client-app mucsi96/client-app
-```
-
-For source checkout development, run `python3 scripts/build_app_dependencies.py`
-at the repository root first. Published charts already bundle the shared library.
-
-## Parameters
-
-| Parameter | Description | Default |
-|-----------|-------------|---------|
-| `appPort` | Port the application listens on | `8000` |
-| `auth` | Same-namespace proxy reference; creates client-owned document authentication | `null` |
-| `runtimeConfig` | Public string-valued JSON injected into index HTML | `{}` |
-| `gateway` | Parent Gateway name, namespace and listener section | `traefik`, `traefik`, `websecure` |
-| `resources.requests.memory` | Memory request | `20Mi` |
-| `resources.requests.cpu` | CPU request | `20m` |
-| `resources.limits.memory` | Memory limit | `100Mi` |
-| `resources.limits.cpu` | CPU limit | `500m` |
-
-## SPA routing and optional authentication
-
-For Azure Storage hosting, use the dedicated [static-client-app chart](../static_client_app/README.md).
-Both charts reuse SPA routing, authentication and runtime configuration from
-`app-common`; this chart always deploys the client container.
-
-GET/HEAD `/`, `/index.html` and document requests (`Sec-Fetch-Dest: document` or
-HTML in `Accept`) use the document rule. The Gateway selects `/index.html` for
-these requests; nginx/storage only serves actual files and returns 404 for
-missing assets. Every client app is hosted at `/` on its own hostname; there is
-no configurable UI base path. Startup, readiness and liveness probes always use
-`/` directly on the origin, bypassing the Gateway. The origin must serve
-`index.html` at `/`; nested SPA paths remain Gateway-owned.
-
-The static catchall does not perform document authentication or index rewriting.
-More-specific API, OAuth and telemetry routes keep their own policy. Both static
-origin paths strip app cookies, bearer and identity headers before the backend.
-
-Authentication is optional. Supply the proxy reference directly:
+| Value | Default |
+| --- | --- |
+| `image`, `host` | Required container image and application hostname |
+| `appPort` | `8000` |
+| `auth` | `null` (public); otherwise same-namespace proxy reference |
+| `gateway` | `traefik` / `traefik` / `websecure` |
+| `resources.requests` | `20Mi` memory, `20m` CPU |
+| `resources.limits` | `100Mi` memory, `500m` CPU |
 
 ```yaml
 auth:
@@ -55,89 +20,15 @@ auth:
   mode: api-token
 ```
 
-The client chart creates `<client-release>-auth` and its own header/auth filters.
-It calls the proxy's internal `/` endpoint to start login before URL rewriting.
-It forwards no identity credentials to the static server. Backend request filters
-strip cookies only after authentication, avoiding duplicate rule filters.
-All proxies and app middleware use the fixed host-only `__Host-session` cookie
-and its `__Host-session_csrf` login companion. No cookie-name setting is needed.
-`proxyPort` defaults to 80; `mode` defaults to api-token and may also be
-email-header or login-gate. Static document checks forward no identity in any mode.
+The gateway authenticates document requests before rewriting their URL to
+`/index.html`. Deep links retain their path/query in the browser. Serve actual
+files at the origin, with `/` returning index for probes; missing assets return
+404. Keep the router/bundler base at `/` and asset URLs root-relative.
 
-The platform release supplies the proxy, credentials and login routes, not app
-middleware or policy lists. With `auth: null`, the same SPA routes work publicly.
-The chart owns header/cache policies; callers do not supply manual filter lists.
-See [application authentication](../../docs/application-auth.md).
+Document bodies pass through unchanged. Build public configuration into the
+client. Documents use no-store, no-referrer and nosniff; assets remain public.
+Cookies and identity headers are stripped before reaching the static server.
+API, OAuth and same-origin telemetry routes retain their separate policies.
 
-### React path-based routing, including nested routes
-
-History routing is framework-agnostic: React Router's `BrowserRouter` or
-`createBrowserRouter`, Angular and Vue Router's HTML5 history mode use the same
-document rule. No route list is needed in Helm. Direct navigation or refresh at
-`/teams/acme/projects/42/settings/members?tab=permissions` serves index HTML while
-the browser keeps the original path/query for the client router to resolve.
-Trailing slashes and route parameters containing dots are supported too.
-
-For example, React Router can define nested routes normally:
-
-```jsx
-<BrowserRouter>
-  <Routes>
-    <Route path="teams/:teamId">
-      <Route path="projects/:projectId/settings/members" element={<Members />} />
-    </Route>
-  </Routes>
-</BrowserRouter>
-```
-
-Bundle URLs must be root-relative or base-aware so refreshing a deep route does
-not request assets relative to that route. A root deployment can use Vite's
-default `base: '/'`, producing `/assets/...` URLs.
-
-Keep the router and bundler base at `/`, with origin files at `/index.html` and
-`/assets/...`. A URL such as `/portal/teams/acme/projects/42` is simply another
-nested application route; it still receives `/index.html`.
-
-The shared Gateway regression covers protected and public apps on separate
-hostnames, including direct entry, refresh, trailing slashes, query preservation,
-dotted parameters, asset loading, cookie isolation and missing-asset 404s.
-
-## Inline runtime configuration
-
-```yaml
-runtimeConfig:
-  clientLogUrl: https://hello.example.test/_telemetry/collect
-  clientAppName: hello-client
-```
-
-A nonempty map creates `<client-release>-index-config`, replacing the quoted
-marker in the built HTML:
-
-```html
-<script>window.__APP_CONFIG__ = "__APP_CONFIG_JSON__";</script>
-```
-
-Values are public strings; never include credentials. Helm JSON serialization
-escapes HTML delimiters and the replacement escapes literal dollars. Applications
-should reject missing/unreplaced config. An empty map creates no plugin resource.
-
-Enable the pinned plugin in Traefik static configuration before using injection:
-
-```yaml
-experimental:
-  plugins:
-    rewritebody:
-      moduleName: github.com/traefik/plugin-rewritebody
-      version: v0.3.1
-```
-
-Traefik 3.7.16 preserves the configured filter order. Document responses use
-`private, no-cache, no-store`; validators, conditional and range headers are
-removed. The origin is requested with `Accept-Encoding: identity` so the plugin
-can replace uncompressed HTML. Immutable assets keep ordinary compression and
-caching. The dedicated static-client-app chart shares these contracts.
-
-For same-origin Faro, logging Terraform owns the exact collector route and
-strips app cookies/bearer/CSRF headers before rewriting to `/collect`. Configure
-the runtime URL on the app origin to avoid cross-origin browser preflight while
-retaining the collector's origin allowlist and rate limits.
+See [application authentication](../../docs/application-auth.md). For local chart
+development run `python3 scripts/build_app_dependencies.py` first.

@@ -1,4 +1,4 @@
-"""Exercise rendered index routing/config with real Traefik and stock ForwardAuth."""
+"""Exercise SPA routing with real Traefik and stock ForwardAuth."""
 import base64
 import copy
 from http.cookiejar import CookieJar
@@ -44,7 +44,6 @@ def main(*, external=False):
     public = f'http://localhost:{gateway_port}'
     other_app = f'http://127.0.0.1:{gateway_port}'
     issuer = f'http://localhost:{issuer_port}/default'
-    runtime = {'clientLogUrl': f'{public}/_telemetry/collect', 'clientAppName': 'fixture-$1-</script>'}
     values = {
         'global': {'forwardAuth': {'host': 'localhost', 'issuerURL': 'https://issuer.example.test/default',
                                   'credentialsSecret': 'fixture-oidc', 'mode': 'api-token',
@@ -58,18 +57,17 @@ def main(*, external=False):
     get = lambda kind, suffix: next(item for item in resources if item['kind'] == kind and item['metadata']['name'].endswith(suffix))
     client_values = {
         'image': 'example/static-origin:1', 'host': 'localhost', 'appPort': origin_port,
-        'gateway': values['gateway'], 'runtimeConfig': runtime,
+        'gateway': values['gateway'],
         'contentSecurityPolicy': "default-src 'self'",
         'auth': {'proxyService': get('Service', 'oauth2-proxy')['metadata']['name'], 'proxyPort': 80},
     }
-    public_runtime = {**runtime, 'clientAppName': 'public-fixture'}
     if external:
         client_values.pop('image')
         client_values['staticOrigin'] = 'localhost'
     client_resources = []
     for release, configuration in [
         ('static-origin', client_values),
-        ('public-origin', {**client_values, 'host': '127.0.0.1', 'auth': None, 'runtimeConfig': public_runtime}),
+        ('public-origin', {**client_values, 'host': '127.0.0.1', 'auth': None}),
     ]:
         chart = 'static_client_app' if external else 'client_app'
         rendered_client = subprocess.run(['helm', 'template', release, str(ROOT / 'charts' / chart), '-f', '-'],
@@ -147,9 +145,6 @@ def main(*, external=False):
         subprocess.run(['openssl', 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days', '1',
                         '-keyout', str(directory / 'origin.key'), '-out', str(directory / 'origin.crt'),
                         '-subj', '/CN=localhost', '-addext', 'subjectAltName=DNS:localhost'], check=True, capture_output=True)
-        plugin = directory / 'plugins/src/github.com/traefik/plugin-rewritebody'
-        plugin.parent.mkdir(parents=True)
-        subprocess.run(['git', 'clone', '--quiet', '--depth', '1', '--branch', 'v0.3.1', 'https://github.com/traefik/plugin-rewritebody.git', str(plugin)], check=True, capture_output=True)
         (directory / 'proxy.cfg').write_text(''.join(f'{key} = {json.dumps(value)}\n' for key, value in legacy.items()))
         (directory / 'proxy.yaml').write_text(yaml.safe_dump(alpha))
         (directory / 'resources.json').write_text(json.dumps(kubernetes))
@@ -159,7 +154,6 @@ def main(*, external=False):
                 'kubernetesGateway': {'endpoint': f'http://127.0.0.1:{kubernetes_port}', 'statusAddress': {'ip': '127.0.0.1'}},
                 'kubernetesCRD': {'endpoint': f'http://127.0.0.1:{kubernetes_port}', 'allowExternalNameServices': external},
             },
-            'experimental': {'localPlugins': {'rewritebody': {'moduleName': 'github.com/traefik/plugin-rewritebody'}}},
         }))
         (directory / 'issuer.json').write_text(json.dumps({'issuer_url': issuer, 'access_token_ttl_secs': 600, 'clients': {'edge-web': {
             'secret': 'fixture-client-secret', 'redirect_uri': f'{public}/oauth2/callback', 'api_audience': 'fixture-api',
@@ -185,11 +179,10 @@ def main(*, external=False):
              'ports': [{'containerPort': kubernetes_port, 'hostPort': kubernetes_port}]},
             {'name': 'gateway', 'image': 'docker.io/library/traefik:v3.7.16', 'args': ['--configFile=/config/traefik.yaml'],
               'env': [{'name': 'SSL_CERT_FILE', 'value': '/config/origin.crt'}],
-             'volumeMounts': [*mount, {'name': 'plugins', 'mountPath': '/plugins-local', 'readOnly': True}],
+              'volumeMounts': mount,
              'ports': [{'containerPort': gateway_port, 'hostPort': gateway_port}]},
         ]
         volumes = [{'name': 'config', 'hostPath': {'path': str(directory), 'type': 'Directory'}},
-                   {'name': 'plugins', 'hostPath': {'path': str(directory / 'plugins'), 'type': 'Directory'}},
                    {'name': 'fixture', 'hostPath': {'path': str(ROOT / 'scripts/fixtures'), 'type': 'Directory'}}]
         pod = directory / 'pod.json'
         pod.write_text(json.dumps({'apiVersion': 'v1', 'kind': 'Pod', 'metadata': {'name': name}, 'spec': {'containers': containers, 'volumes': volumes}}))
@@ -224,27 +217,24 @@ def main(*, external=False):
             target = f'{public}{nested_path}?tab=permissions&returnTo=%2Freports%2Fweekly'
             status, headers, body, final = fetch(target, cookies, {'Accept': 'text/html', 'Accept-Encoding': 'gzip'})
             assert status == 200 and final == target, 'SPA login did not restore the original path/query'
-            assert '__APP_CONFIG_JSON__' not in body.decode() and 'no-store' in headers.get('Cache-Control', '')
+            assert 'no-store' in headers.get('Cache-Control', '')
             assert headers.get('ETag') is None and headers.get('Authorization') is None
-            injected = re.search(r'__APP_CONFIG__\s*=\s*({.*?});', body.decode()).group(1)
-            assert json.loads(injected) == runtime and '</script>' not in injected
+            origin_document = fetch(f'http://localhost:{origin_port}/index.html')[2]
             # BrowserRouter/history URLs must survive direct entry and refresh at any depth.
             public_cookies = CookieJar()
-            for host, path, expected_config, session in [
-                (public, nested_path + '/', runtime, cookies),
-                (public, '/teams/acme/projects/release.v2/files/report.csv/edit?mode=preview', runtime, cookies),
-                (other_app, '/', public_runtime, public_cookies),
-                (other_app, nested_path + '?tab=permissions', public_runtime, public_cookies),
-                (other_app, nested_path + '/', public_runtime, public_cookies),
-                (public, '/portal' + nested_path, runtime, cookies),
+            for host, path, session in [
+                (public, nested_path + '/', cookies),
+                (public, '/teams/acme/projects/release.v2/files/report.csv/edit?mode=preview', cookies),
+                (other_app, '/', public_cookies),
+                (other_app, nested_path + '?tab=permissions', public_cookies),
+                (other_app, nested_path + '/', public_cookies),
+                (public, '/portal' + nested_path, cookies),
             ]:
                 url = host + path
                 for _ in range(2):
                     status, headers, body, final = fetch(url, session, {'Accept': 'text/html'}, follow=False)
                     assert status == 200 and final == url, f'Nested navigation/refresh failed: {path}'
                     assert headers.get('Location') is None and 'no-store' in headers.get('Cache-Control', '')
-                    config = re.search(r'__APP_CONFIG__\s*=\s*({.*?});', body.decode()).group(1)
-                    assert json.loads(config) == expected_config, f'Wrong app handled nested route: {path}'
                     scripts = re.findall(r'<script[^>]+src="([^"]+)"', body.decode())
                     expected_asset = f'http://localhost:{origin_port}/assets/main-HASH.js' if external else '/assets/main-HASH.js'
                     assert scripts == [expected_asset], 'Nested documents must resolve assets independently of their SPA path'
@@ -267,7 +257,7 @@ def main(*, external=False):
                 'If-None-Match': '"origin-only-etag"', 'If-Modified-Since': 'Mon, 01 Jan 2024 00:00:00 GMT',
                 'Range': 'bytes=0-10', 'If-Range': '"origin-only-etag"',
             })
-            assert status == 200 and '__APP_CONFIG_JSON__' not in body.decode(), 'Conditional/range request bypassed config injection'
+            assert status == 200 and body == origin_document, 'Conditional/range request did not return the complete document'
             status, headers, body, _ = fetch(target, cookies, {'Sec-Fetch-Dest': 'document'}, method='HEAD')
             assert status == 200 and not body and 'no-store' in headers.get('Cache-Control', '')
             status, headers, body, _ = fetch(f'{public}/api/data', cookies, {'Authorization': 'Bearer forged'})
@@ -276,7 +266,8 @@ def main(*, external=False):
             assert fetch(f'{public}/oauth2/auth', cookies)[0] == 404
             assert fetch(f'{public}/_telemetry/collect', cookies, {'Content-Type': 'application/json', 'Authorization': 'Bearer forged', 'X-XSRF-TOKEN': 'private'}, b'{}')[0] == 202
             records = json.loads(fetch(f'http://localhost:{origin_port}/requests')[2])
-            index_requests = [item for item in records if item['path'].split('?')[0] == '/index.html']
+            index_requests = [item for item in records if item['path'].split('?')[0] == '/index.html'
+                              and (not external or item['tls'])]
             assert index_requests and all(not item['cookie'] and not item['authorization'] and item['encoding'] == 'identity'
                                           and not item['conditional'] and not item['range'] for item in index_requests)
             assets = [item for item in records if item['path'] in {'/main.js', '/assets/main-HASH.js'}]
@@ -292,7 +283,7 @@ def main(*, external=False):
                 condition['type']: condition['status']
                 for parent in item.get('status', {}).get('parents', []) for condition in parent['conditions']
             }.items() for item in routes), 'Gateway controller rejected a rendered route'
-            print(json.dumps({'documentAuthBeforeIndex': True, 'spaPathQueryRestored': True, 'runtimeConfigInjected': True,
+            print(json.dumps({'documentAuthBeforeIndex': True, 'spaPathQueryRestored': True,
                               'originHasNoSpaFallback': True, 'sameOriginTelemetry': True, 'staticOriginReceivesNoCredentials': True,
                               'nestedHistoryRoutes': True, 'hostOnlyCookieIsolation': True, 'rootOnlyApps': True, 'deepLinkRefreshAndAssets': True}))
         except Exception:

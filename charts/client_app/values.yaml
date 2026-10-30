@@ -1,6 +1,5 @@
 appPort: 8000
 auth: null
-runtimeConfig: {}
 contentSecurityPolicy: null
 gateway:
   name: traefik

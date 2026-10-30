@@ -395,7 +395,7 @@ Charts include:
 Container/static client, Spring, Go, Node and Rust charts use the local Helm library
 [`libraries/app_common`](libraries/app_common/README.md) for authentication
 middleware/filters. The four backend charts also share their API HTTPRoute.
-Both client charts share their SPA HTTPRoute and inline runtime configuration.
+Both client charts share their SPA HTTPRoute.
 Application releases still own these resources; the library runs no workloads.
 
 After checkout, run `python3 scripts/build_app_dependencies.py` before rendering

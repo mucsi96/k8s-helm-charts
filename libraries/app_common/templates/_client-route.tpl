@@ -61,13 +61,6 @@ spec:
       {{- if ne .Values.auth nil }}
         {{- include "app-common.auth.requestFilters" . | nindent 8 }}
       {{- end }}
-      {{- if .Values.runtimeConfig }}
-        - type: ExtensionRef
-          extensionRef:
-            group: traefik.io
-            kind: Middleware
-            name: {{ .Release.Name }}-index-config
-      {{- end }}
         - type: URLRewrite
           urlRewrite:
             {{- if $external }}

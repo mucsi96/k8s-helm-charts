@@ -3,7 +3,6 @@
   "type": "object",
   "required": ["staticOrigin"],
   "properties": {
-    "staticOrigin": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*[a-z0-9]$"},
-    "runtimeConfig": {"type": "object", "additionalProperties": {"type": "string"}}
+    "staticOrigin": {"type": "string", "pattern": "^[a-z0-9][a-z0-9.-]*[a-z0-9]$"}
   }
 }

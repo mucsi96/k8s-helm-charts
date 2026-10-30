@@ -5,5 +5,5 @@ version: 0.1.0
 appVersion: "1.0"
 dependencies:
   - name: app-common
-    version: 5.0.0
+    version: 6.0.0
     repository: file://../../libraries/app_common
