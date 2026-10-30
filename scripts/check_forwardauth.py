@@ -161,9 +161,7 @@ for chart in ["client_app", "static_client_app", "spring_app", "go_app", "node_a
         render(chart, {**values, "auth": invalid}, success=False)
 
 for mode in ["api-token", "email-header", "login-gate"]:
-    client_values = {"image": "example/client:1", "host": "hello.example.test", "auth": {**AUTH, "mode": mode}, "runtimeConfig": {
-        "clientLogUrl": "https://hello.example.test/_telemetry/collect", "clientAppName": "fixture-$1-</script>",
-    }}
+    client_values = {"image": "example/client:1", "host": "hello.example.test", "auth": {**AUTH, "mode": mode}}
     client = render("client_app", client_values)
     document = resource(client, "Middleware", "-auth")["spec"]["forwardAuth"]
     assert document["address"].endswith(":80/") and document["preserveLocationHeader"] is True
@@ -171,7 +169,7 @@ for mode in ["api-token", "email-header", "login-gate"]:
     index, assets = route["rules"]
     assert len(index["matches"]) == 8
     assert all(match["method"] in {"GET", "HEAD"} for match in index["matches"])
-    assert [item["type"] for item in index["filters"]] == ["ResponseHeaderModifier", "RequestHeaderModifier", "ExtensionRef", "ExtensionRef", "URLRewrite"]
+    assert [item["type"] for item in index["filters"]] == ["ResponseHeaderModifier", "RequestHeaderModifier", "ExtensionRef", "URLRewrite"]
     assert index["filters"][2]["extensionRef"]["name"] == "hello-oauth2-proxy-auth"
     cache = index["filters"][0]["responseHeaderModifier"]
     assert cache["set"] == [
@@ -188,16 +186,6 @@ for mode in ["api-token", "email-header", "login-gate"]:
     assert {key: value for key, value in origin.items() if key != "filters"} == assets["backendRefs"][0] == {"name": "hello-oauth2-proxy", "port": 8000}
     assert assets["matches"] == [{"path": {"type": "PathPrefix", "value": "/"}}]
     assert not any(item["type"] in {"ExtensionRef", "URLRewrite"} for item in assets["filters"])
-    middleware = resource(client, "Middleware", "-index-config")["spec"]["plugin"]["rewritebody"]
-    replacement = middleware["rewrites"][0]["replacement"]
-    assert "</script>" not in replacement and "$$1" in replacement
-    assert json.loads(replacement.replace("$$", "$")) == client_values["runtimeConfig"]
-    client_values["runtimeConfig"] = {}
-    no_config = render("client_app", client_values)
-    assert not any(item["kind"] == "Middleware" and item["metadata"]["name"].endswith("-index-config") for item in no_config)
-
-for invalid in [{"runtimeConfig": {"bad": {"nested": True}}}]:
-    render("client_app", {"image": "example/client:1", "host": "hello.example.test", **invalid}, success=False)
 
 for invalid_origin in [None, "", "https://fixture.z1.web.core.windows.net", "fixture.z1.web.core.windows.net/path"]:
     render("static_client_app", {"host": "hello.example.test", "staticOrigin": invalid_origin}, success=False)

@@ -62,9 +62,7 @@ def main():
                 values = {'host': 'app.example.test', 'staticOrigin': 'fixture.z1.web.core.windows.net'}
             variants = [values]
             variants.extend({**values, 'auth': {'proxyService': 'fixture-proxy', 'mode': mode}} for mode in ['api-token', 'email-header', 'login-gate'])
-            if name == 'client_app':
-                variants.append({**variants[1], 'runtimeConfig': {'clientAppName': 'fixture', 'clientLogUrl': 'https://app.example.test/_telemetry/collect'}})
-            elif name != 'static_client_app':
+            if name not in {'client_app', 'static_client_app'}:
                 variants.append({**variants[1], 'basePath': '/api/v1', 'appPort': 8090})
             for variant in variants:
                 rendered = render(chart, variant)

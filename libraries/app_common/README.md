@@ -11,9 +11,8 @@ release still owns the resources produced by these helpers.
 - `app-common.api.route`: common backend HTTPRoute, with optional proxy-based auth.
 - `app-common.client.route`: shared SPA document HTTPRoute and header policy; container clients also include an asset catchall.
 - `app-common.client.backend`: container Service or external TraefikService reference.
-- `app-common.client.runtimeConfig`: public inline HTML bootstrap configuration injection.
 
-Charts own their authentication and header policies. Both client charts use the same SPA/config
+Charts own their authentication and header policies. Both client charts use the same SPA
 and authentication helpers. Origin-specific resources remain in their charts.
 
 SPA document responses always set `Referrer-Policy: no-referrer` and

@@ -69,13 +69,12 @@ Supported `mode` values:
 ### Client-owned SPA authentication
 
 The [client chart](../client_app/README.md) always owns its document/static
-HTTPRoute, document auth Middleware, SPA rewriting and optional inline config.
+HTTPRoute, document auth Middleware and SPA URL rewriting.
 It calls the proxy's `/` endpoint before rewriting the original path/query;
 ordinary assets stay public. API charts create their own `/oauth2/auth` check.
 Both charts and the proxy Service must use the same application namespace.
 
-The client chart owns public `runtimeConfig` and the index marker, including the
-pinned body-plugin requirement. Logging Terraform owns the exact same-origin
+Logging Terraform owns the exact same-origin
 Faro route. Authentication can be omitted without changing SPA route ownership.
 
 Every mode exposes the exact stock `/oauth2/start`, `/oauth2/callback`,
@@ -168,8 +167,7 @@ generated configuration or enable a second upstream public route.
 Gateway API v1.6.3 defines `ExternalAuth` in its experimental channel. Traefik
 v3.7.13/v3.7.14 does not implement that HTTPRoute filter, and v1.6.1
 standard-channel CRDs do not expose it. The ForwardAuth Middleware CRDs are
-therefore implementation-specific. Optional inline configuration adds one
-plugin Middleware in the client chart; routing, header policies, Services and
+therefore implementation-specific. Routing, header policies, Services and
 ConfigMaps use standard APIs.
 
 - [GEP-1494 status](https://gateway-api.sigs.k8s.io/geps/gep-1494/)
