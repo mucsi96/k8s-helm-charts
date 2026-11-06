@@ -27,7 +27,11 @@ The Redis Secret has `redis-password` (override upstream `passwordKey` if needed
 Use a distinct, persisted cookie secret for every application. Secrets and the
 confidential Entra Web registration are provisioned outside this chart. Web app
 assignment must be required; the proxy deliberately permits any authenticated
-email and relies on Entra assignment and downstream API roles for authorization.
+email by default and relies on Entra assignment and downstream API roles for authorization.
+For restricted services such as Grafana, set
+`oauth2-proxy.authenticatedEmailsFile.enabled: true` and supply newline-separated
+emails in `oauth2-proxy.authenticatedEmailsFile.restricted_access`. This disables
+the wildcard email-domain permission so only listed emails are accepted.
 API/login-gate modes use Entra's `preferred_username` for the proxy's required
 email slot, with `sub` as user ID; this avoids a Graph user-info lookup using an
 API access token when the optional email claim is absent. Email-header mode
