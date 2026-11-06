@@ -50,7 +50,9 @@ for mode in ["api-token", "email-header", "login-gate"]:
     assert provider["code_challenge_method"] == "S256"
     assert provider["oidcConfig"]["insecureSkipNonce"] is False
     assert provider["oidcConfig"]["emailClaim"] == ("email" if mode == "email-header" else "preferred_username")
-    assert provider["oidcConfig"]["userIDClaim"] == "sub"
+    # Deprecated userIDClaim overrides emailClaim="email" in stock proxy.
+    # Session.User already defaults to sub without it.
+    assert "userIDClaim" not in provider["oidcConfig"]
     assert provider["skipClaimsFromProfileURL"] == (mode != "email-header")
     assert "User.Read" not in provider["scope"]
     assert ("api://hello-api/api-access" in provider["scope"]) == (mode == "api-token")
