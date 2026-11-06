@@ -43,7 +43,6 @@ providers:
     oidcConfig:
       issuerURL: {{ $auth.issuerURL | quote }}
       emailClaim: {{ ternary "email" "preferred_username" (eq $auth.mode "email-header") }}
-      userIDClaim: sub
       audienceClaims: [aud]
       insecureSkipNonce: false
 {{ if ne $auth.mode "login-gate" }}

@@ -36,6 +36,10 @@ API/login-gate modes use Entra's `preferred_username` for the proxy's required
 email slot, with `sub` as user ID; this avoids a Graph user-info lookup using an
 API access token when the optional email claim is absent. Email-header mode
 uses the actual `email` claim for Grafana. Neither email nor UPN decides API roles.
+The proxy's user identity defaults to `sub`. Do not set the deprecated
+`oidcConfig.userIDClaim`: stock oauth2-proxy treats it as a legacy email-claim
+override when `emailClaim` is `email`, breaking Grafana's email allowlist and
+verified email header.
 API/login-gate modes set provider-level `skipClaimsFromProfileURL: true`: missing
 optional claims such as `groups` must not trigger a Microsoft Graph UserInfo call.
 An app-API access token has the wrong audience for Graph and would otherwise turn
