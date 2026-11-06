@@ -82,6 +82,21 @@ for mode in ["api-token", "email-header", "login-gate"]:
     assert secret_env["OAUTH2_PROXY_REDIS_PASSWORD"]["secretKeyRef"]["name"] == "hello-redis"
     assert not any(item["kind"] == "NetworkPolicy" for item in resources)
 
+# Email restrictions must disable the wildcard: oauth2-proxy ORs domains and
+# file membership, so leaving '*' enabled silently bypasses the allowlist.
+values = copy.deepcopy(VALUES)
+values["global"]["forwardAuth"].update(mode="email-header", apiScope="")
+values["oauth2-proxy"]["authenticatedEmailsFile"] = {
+    "enabled": True, "restricted_access": "owner@example.com\n",
+}
+resources = render("oauth2_proxy_forwardauth", values)
+config = resource(resources, "ConfigMap", "oauth2-proxy")["data"]["oauth2_proxy.cfg"]
+assert 'email_domains = []' in config and 'email_domains = ["*"]' not in config
+deployment = resource(resources, "Deployment", "oauth2-proxy")
+container = deployment["spec"]["template"]["spec"]["containers"][0]
+assert any("--authenticated-emails-file=" in arg for arg in container["args"])
+assert any("owner@example.com" in str(item.get("data", {})) for item in resources)
+
 for path, value in [
     (("global", "forwardAuth", "apiScope"), ""),
     (("global", "forwardAuth", "credentialsSecret"), ""),

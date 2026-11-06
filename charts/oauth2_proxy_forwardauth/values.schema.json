@@ -54,7 +54,7 @@
           "configFile": {"const": "{{ include \"forwardauth.alphaConfig\" . }}"},
           "configData": {"maxProperties": 0}
         }},
-        "authenticatedEmailsFile": {"type": "object", "properties": {"enabled": {"const": false}}},
+        "authenticatedEmailsFile": {"type": "object", "properties": {"enabled": {"type": "boolean"}}},
         "ingress": {"type": "object", "properties": {"enabled": {"const": false}}},
         "gatewayApi": {"type": "object", "properties": {"enabled": {"const": false}}},
         "sessionStorage": {"type": "object", "properties": {

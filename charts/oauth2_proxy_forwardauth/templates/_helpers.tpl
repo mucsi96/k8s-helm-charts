@@ -8,7 +8,11 @@ __Host-session
 
 {{- define "forwardauth.legacyConfig" -}}
 {{- $auth := .Values.global.forwardAuth -}}
+{{ if .Values.authenticatedEmailsFile.enabled }}
+email_domains = []
+{{ else }}
 email_domains = ["*"]
+{{ end }}
 cookie_name = {{ include "forwardauth.cookieName" . | quote }}
 cookie_secure = true
 cookie_httponly = true
